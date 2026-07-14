@@ -1,0 +1,42 @@
+:root {
+  --color-bg: #ffffff;
+  --color-fg: #171717;
+  --color-muted: #555555;
+  /* Semantic colors: green = good for the buyer, red = above market. */
+  --color-good: #0a7f3f;
+  --color-bad: #c62828;
+  --color-neutral: #6b7280;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #0a0a0a;
+    --color-fg: #ededed;
+    --color-muted: #a3a3a3;
+    --color-good: #4ade80;
+    --color-bad: #f87171;
+    --color-neutral: #9ca3af;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0;
+  color: var(--color-fg);
+  background: var(--color-bg);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}

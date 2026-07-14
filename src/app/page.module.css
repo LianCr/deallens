@@ -1,0 +1,19 @@
+.main {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 4rem 1.5rem;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.75rem;
+}
+
+.tagline {
+  font-size: 1.125rem;
+  line-height: 1.6;
+  color: var(--color-muted);
+  margin: 0;
+}
