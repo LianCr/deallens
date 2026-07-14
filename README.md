@@ -7,7 +7,7 @@ those moves.
 
 > **Live demo:** _deploying — URL lands here_ · **Chart gallery:** `/dev/charts` · **API playground:** `/api/graphql`
 
-![Deal dashboard](docs/screenshots/m4-dashboard-full.png)
+![30-second walkthrough](docs/demo.gif)
 
 ## Why this exists
 
