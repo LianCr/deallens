@@ -9,6 +9,7 @@ import {
   DEFAULT_MILES_PER_YEAR,
 } from "@/domain/fuelCost";
 import { PriceContextChart } from "@/components/charts/PriceContextChart";
+import { PriceHistoryTimeline } from "@/components/charts/PriceHistoryTimeline";
 import { DemoDataBadge, ProvenanceBadge } from "@/components/DataBadge/DataBadge";
 import styles from "./page.module.css";
 
@@ -177,6 +178,19 @@ export default async function DealPage({
           p25={priceContext.p25}
           median={priceContext.median}
           p75={priceContext.p75}
+        />
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>
+            How this price moved over 24 months
+          </h2>
+          {priceContext.dataSource === "DEMO" && <DemoDataBadge />}
+        </div>
+        <PriceHistoryTimeline
+          history={priceContext.history}
+          events={priceContext.events}
         />
       </section>
 

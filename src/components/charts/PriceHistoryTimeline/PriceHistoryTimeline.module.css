@@ -1,0 +1,279 @@
+.container {
+  width: 100%;
+}
+
+/* ——— Header: rolling price + delta + range switch ——— */
+
+.header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.625rem;
+  flex-wrap: wrap;
+  /* Fixed height so hover-driven text changes never shift the chart. */
+  min-height: 2.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.headerPrice {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.headerUnit {
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+}
+
+.headerDelta {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.headerDeltaLabel {
+  font-weight: 400;
+  color: var(--color-muted);
+}
+
+.risingText {
+  color: var(--color-good);
+}
+
+.fallingText {
+  color: var(--color-bad);
+}
+
+.rangeSwitch {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.rangeOn,
+.rangeOff {
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: inherit;
+  border-radius: 0.375rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  background: transparent;
+  color: var(--color-muted);
+}
+
+.rangeOn {
+  color: var(--color-fg);
+  border-color: var(--color-neutral);
+}
+
+.rangeOff:hover {
+  color: var(--color-fg);
+}
+
+/* ——— Plot ——— */
+
+.plotWrap {
+  position: relative;
+  aspect-ratio: 720 / 280;
+  width: 100%;
+  cursor: crosshair;
+  touch-action: pan-y;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.gridV,
+.gridH {
+  stroke: color-mix(in srgb, var(--color-neutral) 18%, transparent);
+  stroke-width: 1;
+}
+
+.xTick,
+.yTick {
+  font-size: 10px;
+  fill: var(--color-muted);
+  text-anchor: middle;
+}
+
+.yTick {
+  text-anchor: start;
+}
+
+.line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.line.rising {
+  stroke: var(--color-good);
+}
+
+.line.falling {
+  stroke: var(--color-bad);
+}
+
+/* ——— Event cluster dots ——— */
+
+.node {
+  stroke: var(--color-bg);
+  stroke-width: 1.5;
+  transition: r 120ms;
+}
+
+.nodeModelYear {
+  fill: var(--color-event-model-year);
+}
+
+.nodeSeasonal {
+  fill: var(--color-event-seasonal);
+}
+
+.nodeIncentive {
+  fill: var(--color-event-incentive);
+}
+
+.nodeActive {
+  stroke-width: 2;
+}
+
+.badgeBg {
+  fill: var(--color-fg);
+}
+
+.badgeText {
+  font-size: 9px;
+  font-weight: 700;
+  fill: var(--color-bg);
+  text-anchor: middle;
+}
+
+.pinRing {
+  fill: none;
+  stroke: var(--color-fg);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+}
+
+/* ——— Cursor ——— */
+
+.crossV,
+.crossH {
+  stroke: color-mix(in srgb, var(--color-fg) 45%, transparent);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.crossDot.rising,
+.nowDot.rising {
+  fill: var(--color-good);
+}
+
+.crossDot.falling,
+.nowDot.falling {
+  fill: var(--color-bad);
+}
+
+.crossDot,
+.nowDot {
+  stroke: var(--color-bg);
+  stroke-width: 1.5;
+}
+
+/* ——— Readout bar (fixed height — never covers the chart) ——— */
+
+.readout {
+  min-height: 6.5rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--color-neutral) 30%, transparent);
+  border-left: 3px solid color-mix(in srgb, var(--color-neutral) 30%, transparent);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.readoutOn {
+  border-left-color: var(--color-fg);
+}
+
+.readoutHead {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  margin-bottom: 0.25rem;
+}
+
+.readoutDate {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.readoutPin {
+  font-size: 0.75rem;
+}
+
+.readoutLine {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  margin-bottom: 0.125rem;
+}
+
+.kindTag {
+  flex: none;
+  padding: 0.0625rem 0.4375rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  border-radius: 999px;
+  color: var(--color-bg);
+}
+
+.kindMODEL_YEAR {
+  background: var(--color-event-model-year);
+}
+
+.kindSEASONAL {
+  background: var(--color-event-seasonal);
+}
+
+.kindINCENTIVE {
+  background: var(--color-event-incentive);
+}
+
+.readoutTitle {
+  color: var(--color-fg);
+}
+
+.readoutMore {
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+}
+
+.readoutFoot {
+  margin-top: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--color-muted);
+}
+
+.readoutHint {
+  color: var(--color-muted);
+}
+
+.emptyState {
+  display: grid;
+  place-items: center;
+  min-height: 12rem;
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--color-muted);
+  border: 1px dashed var(--color-neutral);
+  border-radius: 0.75rem;
+}

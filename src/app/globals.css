@@ -6,6 +6,10 @@
   --color-good: #0a7f3f;
   --color-bad: #c62828;
   --color-neutral: #6b7280;
+  /* Market-event kinds on the price timeline. */
+  --color-event-model-year: #4f46e5;
+  --color-event-seasonal: #b45309;
+  --color-event-incentive: #0e7490;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -16,6 +20,9 @@
     --color-good: #4ade80;
     --color-bad: #f87171;
     --color-neutral: #9ca3af;
+    --color-event-model-year: #818cf8;
+    --color-event-seasonal: #f59e0b;
+    --color-event-incentive: #22d3ee;
   }
 
   html {

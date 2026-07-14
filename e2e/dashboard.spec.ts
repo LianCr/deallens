@@ -14,9 +14,12 @@ test("a shared deal link renders the verdict, chart, and honesty badges", async 
     /Great deal|Fair price|Above market|Not enough data/,
   );
 
-  // Data honesty is on the page, always.
+  // Data honesty is on the page, always — one DEMO chip per synthetic
+  // section (distribution + history).
   await expect(page.getByText("Vehicle data: NHTSA (real)", { exact: false })).toBeVisible();
-  await expect(page.getByText("Demo pricing data")).toBeVisible();
+  const demoBadges = page.getByText("Demo pricing data");
+  await expect(demoBadges).toHaveCount(2);
+  await expect(demoBadges.first()).toBeVisible();
 
   // The distribution chart is server-rendered SVG.
   await expect(page.getByRole("img", { name: /market price distribution/i })).toBeVisible();

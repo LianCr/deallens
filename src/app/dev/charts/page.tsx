@@ -2,6 +2,7 @@ import { buildHistogram } from "@/domain/histogram";
 import { percentileValue } from "@/domain/percentile";
 import { generatePricingDataset } from "@/sources/pricing-gen";
 import { PriceContextChart } from "@/components/charts/PriceContextChart";
+import { PriceHistoryTimeline } from "@/components/charts/PriceHistoryTimeline";
 import { DemoDataBadge } from "@/components/DataBadge/DataBadge";
 import styles from "./page.module.css";
 
@@ -53,6 +54,18 @@ export default function ChartGallery() {
       <section className={styles.item}>
         <h2 className={styles.itemTitle}>PriceContextChart — honest empty state</h2>
         <PriceContextChart buckets={[]} quote={20000} p25={null} median={null} p75={null} />
+      </section>
+
+      <section className={styles.item}>
+        <h2 className={styles.itemTitle}>
+          PriceHistoryTimeline — sweep, snap to events, click to pin
+        </h2>
+        <PriceHistoryTimeline history={rich.history} events={rich.events} />
+      </section>
+
+      <section className={styles.item}>
+        <h2 className={styles.itemTitle}>PriceHistoryTimeline — honest empty state</h2>
+        <PriceHistoryTimeline history={[]} events={[]} />
       </section>
     </main>
   );
