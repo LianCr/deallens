@@ -121,7 +121,9 @@ export async function decodeVin(
   const make = row.Make ?? "";
   const model = row.Model ?? "";
   const year = Number(row.ModelYear ?? "");
-  if (!make || !model || !Number.isInteger(year)) {
+  // Number("") is 0, so an empty ModelYear must fail the range check,
+  // not just the integer check.
+  if (!make || !model || !Number.isInteger(year) || year < 1980) {
     return null;
   }
   const hasError = row.ErrorCode !== undefined && !/^0\b/.test(row.ErrorCode);

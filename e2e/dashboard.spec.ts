@@ -46,6 +46,17 @@ test("sweeping the distribution shows a live percentile readout", async ({ page 
   await expect(overlay.locator("div").last()).toHaveText(/\$\d[\d,]* · cheaper than \d+% of listings/);
 });
 
+test("fuzzed share links degrade honestly, never to a 500", async ({ page }) => {
+  // Out-of-range year → 404, not an unhandled GraphQL error.
+  const badYear = await page.goto("/deal/honda/1900/civic?quote=20000");
+  expect(badYear!.status()).toBe(404);
+
+  // Absurd quote (overflows GraphQL Int) → falls back to the quote prompt.
+  const badQuote = await page.goto("/deal/honda/2022/civic?quote=99999999999");
+  expect(badQuote!.status()).toBe(200);
+  await expect(page.getByLabel(/dealer quote/i)).toBeVisible();
+});
+
 test("missing quote prompts for one without losing the vehicle", async ({ page }) => {
   await page.goto("/deal/honda/2022/civic");
   await expect(page.getByRole("heading", { name: /2022 Honda Civic/ })).toBeVisible();

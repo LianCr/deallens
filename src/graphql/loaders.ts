@@ -13,6 +13,14 @@ import { fetchFuelEconomy, type FuelEconomy } from "@/sources/fueleconomy";
  *     day across requests instead of hammering a public API.
  */
 const DAY_MS = 24 * 60 * 60 * 1000;
+/** Hard cap per cache: bounded memory even if someone scripts junk
+ * queries at the public endpoint. Reset-on-full is fine at this scale. */
+const CACHE_MAX_ENTRIES = 500;
+
+function boundedSet<V>(cache: Map<string, V>, key: string, value: V): void {
+  if (cache.size >= CACHE_MAX_ENTRIES) cache.clear();
+  cache.set(key, value);
+}
 
 interface CacheEntry {
   models: VpicModel[];
@@ -28,7 +36,7 @@ async function loadModels(make: string, year: number): Promise<VpicModel[]> {
     return cached.models;
   }
   const models = await fetchModelsForMakeYear(make, year);
-  modelCatalogCache.set(key, { models, fetchedAt: Date.now() });
+  boundedSet(modelCatalogCache, key, { models, fetchedAt: Date.now() });
   return models;
 }
 
@@ -52,7 +60,7 @@ export async function loadFuelEconomy(
     return cached.record;
   }
   const record = await fetchFuelEconomy(year, make, model);
-  fuelEconomyCache.set(key, { record, fetchedAt: Date.now() });
+  boundedSet(fuelEconomyCache, key, { record, fetchedAt: Date.now() });
   return record;
 }
 

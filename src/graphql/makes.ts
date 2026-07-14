@@ -38,5 +38,15 @@ export const MAKES = [
   "Volvo",
 ] as const;
 
-/** Model years offered by the picker, newest first. */
-export const YEARS = Array.from({ length: 12 }, (_, i) => 2026 - i);
+/** Model years offered by the picker, newest first — anchored to the
+ * clock so the demo doesn't silently go stale next January. */
+export const YEARS = Array.from(
+  { length: 12 },
+  (_, i) => new Date().getUTCFullYear() - i,
+);
+
+/** Case-insensitive whitelist check for resolver input validation. */
+export function isKnownMake(make: string): boolean {
+  const target = make.trim().toLowerCase();
+  return MAKES.some((m) => m.toLowerCase() === target);
+}

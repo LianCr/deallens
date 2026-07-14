@@ -72,21 +72,37 @@ function verdictDetail(context: PriceContext): string {
   return `${deltaText} of comparable listings${pctText}.`;
 }
 
-export default async function DealPage({
-  params,
-  searchParams,
-}: {
+/** Year range the pricing gateway accepts; outside it the URL is junk. */
+const YEAR_MIN = 1980;
+const YEAR_MAX = 2035;
+/** GraphQL Int is 32-bit; also no car costs a billion dollars. */
+const QUOTE_MAX = 5_000_000;
+
+interface DealPageProps {
   params: Promise<{ vehicle: string[] }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
+}
+
+export async function generateMetadata({ params }: Pick<DealPageProps, "params">) {
+  const parsed = parseVehicleSegments((await params).vehicle);
+  if (!parsed) return { title: "Deal not found" };
+  return {
+    title: `${parsed.year} ${titleCase(parsed.make)} ${titleCase(parsed.model)} — is the price fair?`,
+  };
+}
+
+export default async function DealPage({ params, searchParams }: DealPageProps) {
   const { vehicle } = await params;
   const parsed = parseVehicleSegments(vehicle);
-  if (!parsed) notFound();
+  // Malformed or out-of-range URLs are a 404, never a 500 — shared
+  // links get fuzzed, and this page's whole point is being shareable.
+  if (!parsed || parsed.year < YEAR_MIN || parsed.year > YEAR_MAX) notFound();
 
   const query = await searchParams;
   const quoteParam = Array.isArray(query.quote) ? query.quote[0] : query.quote;
   const quote = Number(quoteParam);
-  const hasQuote = Number.isInteger(quote) && quote > 0;
+  // An absurd or malformed quote falls back to the quote prompt.
+  const hasQuote = Number.isInteger(quote) && quote > 0 && quote <= QUOTE_MAX;
 
   const vehicleName = `${parsed.year} ${titleCase(parsed.make)} ${titleCase(parsed.model)}`;
   const selfPath = dealPath(parsed.make, parsed.year, parsed.model);

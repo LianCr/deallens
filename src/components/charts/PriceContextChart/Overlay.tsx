@@ -50,10 +50,12 @@ export default function Overlay({
 
     cursor.style.transform = `translateX(${(clamped / width) * rect.width}px)`;
     cursor.style.opacity = "1";
+    // percentileFromBuckets returns the share of listings BELOW the
+    // cursor price, so "cheaper than" needs the complement.
     readout.textContent =
       percentile === null
         ? formatDollars(price)
-        : `${formatDollars(price)} · cheaper than ${Math.round(percentile)}% of listings`;
+        : `${formatDollars(price)} · cheaper than ${Math.round(100 - percentile)}% of listings`;
     readout.style.opacity = "1";
   };
 

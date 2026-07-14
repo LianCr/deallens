@@ -5,7 +5,7 @@ import { buildHistogram } from "@/domain/histogram";
 import { UpstreamError } from "@/sources/errors";
 import { decodeVin } from "@/sources/vpic";
 import { generatePricingDataset } from "@/sources/pricing-gen";
-import { MAKES, YEARS } from "./makes";
+import { isKnownMake, MAKES, YEARS } from "./makes";
 import { loadFuelEconomy, type Loaders } from "./loaders";
 
 export interface GraphQLContext {
@@ -43,6 +43,12 @@ function requireVehicleArgs(make: string, model: string, year: number): void {
   if (!make.trim() || !model.trim()) {
     throw invalidInput("make and model must be non-empty");
   }
+  // Length caps keep arbitrary input from growing caches and upstream
+  // URLs; VIN-decoded makes can be outside the picker whitelist, so
+  // membership isn't required here.
+  if (make.length > 40 || model.length > 60) {
+    throw invalidInput("make or model is implausibly long");
+  }
   if (!Number.isInteger(year) || year < 1980 || year > 2035) {
     throw invalidInput(`year ${year} is out of range`);
   }
@@ -65,7 +71,11 @@ export const resolvers = {
       args: { make: string; year: number },
       context: GraphQLContext,
     ): Promise<string[]> => {
-      if (!args.make.trim()) throw invalidInput("make must be non-empty");
+      // The picker only offers whitelisted makes; free-form input here
+      // would let anyone grow the upstream cache with junk keys.
+      if (!isKnownMake(args.make)) {
+        throw invalidInput(`unknown make: ${args.make.slice(0, 40)}`);
+      }
       if (!YEARS.includes(args.year)) {
         throw invalidInput(`year ${args.year} is outside the supported range`);
       }
