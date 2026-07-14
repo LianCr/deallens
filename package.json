@@ -13,6 +13,9 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "dataloader": "^2.2.3",
+    "graphql": "^16.14.2",
+    "graphql-yoga": "^5.21.2",
     "next": "16.2.10",
     "react": "19.2.4",
     "react-dom": "19.2.4"

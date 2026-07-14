@@ -1,0 +1,40 @@
+.main {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: 3rem 1.5rem;
+}
+
+.breadcrumb {
+  margin: 0 0 1.5rem;
+  font-size: 0.9375rem;
+}
+
+.breadcrumb a {
+  color: var(--color-muted);
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  color: var(--color-fg);
+}
+
+.title {
+  margin: 0 0 0.5rem;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.quote {
+  margin: 0 0 2rem;
+  font-size: 1.125rem;
+  color: var(--color-muted);
+}
+
+.placeholder {
+  padding: 1.5rem;
+  border: 1px dashed var(--color-neutral);
+  border-radius: 0.75rem;
+  color: var(--color-muted);
+  line-height: 1.6;
+}

@@ -10,6 +10,9 @@ export default defineConfig({
     },
   },
   test: {
+    // globals gives Testing Library the afterEach hook it needs for
+    // automatic DOM cleanup between tests.
+    globals: true,
     environment: "jsdom",
     setupFiles: ["./vitest.setup.ts"],
     include: ["src/**/*.test.{ts,tsx}"],
