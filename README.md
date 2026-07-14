@@ -5,7 +5,7 @@ dealer's quote, and see where it lands: the market distribution around
 it, how prices moved over 24 months, and the market events pinned to
 those moves.
 
-> **Live demo:** _deploying — URL lands here_ · **Chart gallery:** `/dev/charts` · **API playground:** `/api/graphql`
+> **Live demo:** [deallens-xi.vercel.app](https://deallens-xi.vercel.app) — try a [shared deal link](https://deallens-xi.vercel.app/deal/honda/2022/civic?quote=24500) · **Chart gallery:** [/dev/charts](https://deallens-xi.vercel.app/dev/charts) · **API playground:** [/api/graphql](https://deallens-xi.vercel.app/api/graphql)
 
 ![30-second walkthrough](docs/demo.gif)
 
@@ -42,7 +42,7 @@ dashboard 48 KB, contact 74 KB — all far under the 150 KB budget. The
 D3-flavored interactive chunks load only when a chart scrolls into
 view.
 
-Tests: **89 unit/contract tests** (Vitest) + **53 E2E runs** across
+Tests: **89 unit/contract tests** (Vitest) + **56 E2E runs** across
 chromium, firefox, webkit, and the no-JS project (Playwright). CI runs
 lint → typecheck → unit → build → E2E matrix → Lighthouse budget gate.
 
@@ -86,7 +86,7 @@ Browser ──► Next.js App Router (all pages SSR, Node runtime)
 ## The signature component
 
 `PriceHistoryTimeline` is a direct port of the god-mode timeline from
-the author's [smart-money-decoder](https://github.com/nicklien307)
+the author's [smart-money-decoder](https://github.com/LianCr/smart-money-decoder)
 (there: news × prediction-market odds; here: market events × asking
 prices — same design language: draw *why it's this price* next to
 *what the price is*). Sweep the chart and the price follows on an
@@ -140,7 +140,7 @@ posting, line by line:
 | "Node.js (plus)" | graphql-yoga gateway aggregating three upstreams, DataLoader, tiered caching |
 | "cloud platform (plus)" | Vercel deployment + a concrete AWS Lambda/CloudFront migration path ([ADR 004](docs/adr/004-aws-deploy.md)) |
 | "streamline the way customers reach out to dealers" | The contact page: a lead form that submits without JavaScript, validates at field level, never shifts layout, and scores 100×4 |
-| "see projects through to completion" | This repo: CI green, deployed, plus a prior product in production ([smart-money-decoder](https://github.com/nicklien307)) |
+| "see projects through to completion" | This repo: CI green, deployed, plus a prior product in production ([smart-money-decoder](https://github.com/LianCr/smart-money-decoder)) |
 
 ## Screenshots
 
