@@ -10,8 +10,10 @@
   font-weight: 600;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  color: var(--color-event-model-year);
-  border: 1px solid color-mix(in srgb, var(--color-event-model-year) 45%, transparent);
+  /* Accent, not the DEMO-badge red: "AI-generated" is a provenance
+     label, not a warning. */
+  color: var(--color-accent);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 45%, transparent);
   border-radius: 999px;
   white-space: nowrap;
 }

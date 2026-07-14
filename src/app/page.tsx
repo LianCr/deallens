@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { executeGraphQL } from "@/graphql/yoga";
 import { dealPath } from "@/lib/vehicleUrl";
@@ -92,32 +93,73 @@ export default async function Home({
 
   return (
     <main className={styles.main}>
-      <h1 className={styles.title}>DealLens</h1>
-      <p className={styles.tagline}>
-        Is this price fair? Pick a car, enter the dealer&apos;s quote, and see
-        where it lands in the market — not just a number, but the context
-        around it.
-      </p>
+      {/* Hero: static text only — this is the LCP element, so it ships
+          zero client JS and never shifts. */}
+      <section className={styles.hero}>
+        <h1 className={styles.title}>
+          DealLens<span className={styles.titleDot}>.</span> Is this price fair?
+        </h1>
+        <p className={styles.tagline}>
+          Pick a car, enter the dealer&apos;s quote, and see where it lands in the
+          market — not just a number, but the context around it.
+        </p>
+      </section>
 
-      {/* AI is an on-ramp, not a dependency: the classic picker below
-          works without it (and without JavaScript). */}
-      <section className={styles.finderSection}>
+      {/* AI is an on-ramp, not a dependency: everything below it works
+          without AI (and without JavaScript). */}
+      <section className={styles.finderSection} aria-label="Describe what you need">
         <NlFinder />
       </section>
 
-      <PickerForm
-        makes={makes}
-        years={years}
-        models={models}
-        selection={{
-          make: selection.make ?? "",
-          year: selection.year ?? "",
-          model: selection.model ?? "",
-          quote: selection.quote ?? "",
-        }}
-        modelsError={modelsError}
-        vinError={vinError}
-      />
+      <section className={styles.pickerSection} aria-label="Pick the car yourself">
+        <h2 className={styles.sectionTitle}>Or pick the car yourself</h2>
+        <PickerForm
+          makes={makes}
+          years={years}
+          models={models}
+          selection={{
+            make: selection.make ?? "",
+            year: selection.year ?? "",
+            model: selection.model ?? "",
+            quote: selection.quote ?? "",
+          }}
+          modelsError={modelsError}
+          vinError={vinError}
+        />
+      </section>
+
+      <section className={styles.samples} aria-label="Example deals">
+        <h2 className={styles.sectionTitle}>Or try a shared deal</h2>
+        <ul className={styles.sampleList}>
+          {SAMPLE_DEALS.map((sample) => (
+            <li key={sample.href}>
+              <Link href={sample.href} className={styles.sampleCard}>
+                <span className={styles.sampleVehicle}>{sample.vehicle}</span>
+                <span className={styles.sampleQuote}>quoted at {sample.quote}</span>
+                <span className={styles.sampleCta}>See the verdict →</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className={styles.how} aria-label="How it works">
+        <h2 className={styles.sectionTitle}>How it works</h2>
+        <ol className={styles.howSteps}>
+          <li className={styles.howStep}>
+            <strong>Pick a real car.</strong> Make, year, and model come live from
+            the NHTSA catalog — or paste a VIN.
+          </li>
+          <li className={styles.howStep}>
+            <strong>Enter the dealer&apos;s quote.</strong> The verdict is computed
+            server-side: percentile, median delta, 24 months of price history.
+          </li>
+          <li className={styles.howStep}>
+            <strong>Negotiate with context.</strong> A shareable link, honest data
+            labels, and an AI brief grounded in the same numbers.
+          </li>
+        </ol>
+      </section>
 
       <p className={styles.dataNote}>
         Vehicle catalog: NHTSA vPIC (real, live). No account, no API keys.
@@ -125,3 +167,21 @@ export default async function Home({
     </main>
   );
 }
+
+const SAMPLE_DEALS = [
+  {
+    vehicle: "2022 Honda Civic",
+    quote: "$24,500",
+    href: dealPath("Honda", 2022, "Civic", 24500),
+  },
+  {
+    vehicle: "2022 Toyota RAV4",
+    quote: "$31,200",
+    href: dealPath("Toyota", 2022, "RAV4", 31200),
+  },
+  {
+    vehicle: "2021 Ford F-150",
+    quote: "$38,900",
+    href: dealPath("Ford", 2021, "F-150", 38900),
+  },
+];

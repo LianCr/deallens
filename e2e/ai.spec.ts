@@ -86,7 +86,9 @@ test("without JavaScript the verdict stands and the AI note is honest @no-js", a
   // Core conclusion: untouched by the AI layer.
   await expect(page.getByTestId("verdict-hero")).toBeVisible();
   // The grounding disclaimer is server-rendered, not hydration-dependent.
-  await expect(page.getByText(/AI narrates, math decides/)).toBeVisible();
+  await expect(
+    page.getByTestId("deal-brief").getByText(/AI narrates, math decides/),
+  ).toBeVisible();
   // The <noscript> fallback ships in the SSR HTML. (Asserted on the
   // markup: Chromium's JS-disabled emulation stops script execution but
   // the parser still treats scripting as on, so <noscript> never paints.)

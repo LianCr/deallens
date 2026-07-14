@@ -37,10 +37,30 @@
 /* ——— Hero verdict ——— */
 
 .hero {
-  padding: 2rem;
-  border-radius: 1rem;
-  border: 1px solid color-mix(in srgb, var(--color-neutral) 35%, transparent);
-  margin-bottom: 2.5rem;
+  padding: var(--space-xl) 2rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  margin-bottom: var(--space-xl);
+  /* Entrance: opacity + transform only (zero CLS), short enough not to
+     dent LCP, and off entirely under prefers-reduced-motion. */
+  animation: hero-enter 240ms ease-out;
+}
+
+@keyframes hero-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero {
+    animation: none;
+  }
 }
 
 .hero[data-tone="good"] {
@@ -61,7 +81,7 @@
 
 .heroVerdict {
   margin: 0 0 0.5rem;
-  font-size: 3rem;
+  font-size: clamp(2.125rem, 8vw, 3rem);
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.1;
@@ -107,7 +127,12 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex-wrap: wrap;
   margin-bottom: 1rem;
+}
+
+.sectionHeader > h2 {
+  flex: none;
 }
 
 .sectionTitle {
@@ -131,8 +156,9 @@
 
 .quotePrompt {
   padding: 2rem;
-  border: 1px solid color-mix(in srgb, var(--color-neutral) 35%, transparent);
-  border-radius: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
 }
 
 .quoteForm {

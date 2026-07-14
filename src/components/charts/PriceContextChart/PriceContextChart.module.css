@@ -12,18 +12,22 @@
   height: 100%;
 }
 
+/* One data series → one identity hue (the flat neutral gray read as
+   scaffolding, not data). Marker/median/quote inks stay neutral. */
 .area {
-  fill: color-mix(in srgb, var(--color-neutral) 22%, transparent);
+  fill: color-mix(in srgb, var(--color-series) 18%, transparent);
 }
 
 .line {
   fill: none;
-  stroke: var(--color-neutral);
+  stroke: var(--color-series);
   stroke-width: 1.5;
 }
 
+/* P25–P75 is "the normal range" — informational, not a good/bad claim,
+   so it tints with the series hue instead of the verdict green. */
 .quartileBand {
-  fill: color-mix(in srgb, var(--color-good) 10%, transparent);
+  fill: color-mix(in srgb, var(--color-series) 8%, transparent);
 }
 
 .medianLine {
@@ -36,6 +40,18 @@
 .axisLabel {
   font-size: 11px;
   fill: var(--color-muted);
+}
+
+/* Legibility compensation for the viewBox scale-down on phones. */
+@media (max-width: 540px) {
+  .medianLabel,
+  .axisLabel {
+    font-size: 16px;
+  }
+
+  .quoteLabel {
+    font-size: 17px;
+  }
 }
 
 .quoteLine {

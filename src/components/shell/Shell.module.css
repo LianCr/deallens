@@ -1,0 +1,73 @@
+.header {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.headerInner {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: var(--space-sm) var(--space-lg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.wordmark {
+  font-size: var(--text-lg);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-fg);
+  text-decoration: none;
+}
+
+.wordmarkAccent {
+  color: var(--color-accent);
+}
+
+.nav {
+  display: flex;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+}
+
+.navLink {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-muted);
+  text-decoration: none;
+  transition: color 120ms ease;
+}
+
+.navLink:hover {
+  color: var(--color-fg);
+}
+
+.footer {
+  margin-top: var(--space-2xl);
+  border-top: 1px solid var(--color-border);
+}
+
+.footerInner {
+  max-width: 56rem;
+  margin: 0 auto;
+  padding: var(--space-lg);
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.footerLine {
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: 1.6;
+  color: var(--color-muted);
+}
+
+.footerLink {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.footerLink:hover {
+  color: var(--color-fg);
+}
