@@ -165,6 +165,14 @@ export default async function DealPage({
         </p>
         <h2 className={styles.heroVerdict}>{copy.headline}</h2>
         <p className={styles.heroDetail}>{verdictDetail(priceContext)}</p>
+        <p className={styles.heroCta}>
+          <Link
+            href={`/contact?vehicle=${encodeURIComponent(vehicleName)}`}
+            className={styles.contactLink}
+          >
+            Contact the dealer →
+          </Link>
+        </p>
       </section>
 
       <section className={styles.section}>

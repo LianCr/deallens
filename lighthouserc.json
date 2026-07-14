@@ -3,7 +3,11 @@
     "collect": {
       "startServerCommand": "npm run start",
       "startServerReadyPattern": "Ready in",
-      "url": ["http://localhost:3000/"],
+      "url": [
+        "http://localhost:3000/",
+        "http://localhost:3000/deal/honda/2022/civic?quote=24500",
+        "http://localhost:3000/contact"
+      ],
       "numberOfRuns": 3,
       "settings": {
         "preset": "desktop"
