@@ -18,6 +18,10 @@
   margin: 0;
 }
 
+.finderSection {
+  margin: 2.5rem 0;
+}
+
 .dataNote {
   margin-top: 3rem;
   font-size: 0.8125rem;

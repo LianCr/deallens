@@ -11,6 +11,7 @@ import {
 import { PriceContextChart } from "@/components/charts/PriceContextChart";
 import { PriceHistoryTimeline } from "@/components/charts/PriceHistoryTimeline";
 import { DemoDataBadge, ProvenanceBadge } from "@/components/DataBadge/DataBadge";
+import { AiBadge, DealBrief } from "@/components/DealBrief/DealBrief";
 import styles from "./page.module.css";
 
 /**
@@ -236,6 +237,22 @@ export default async function DealPage({ params, searchParams }: DealPageProps) 
           </p>
         </section>
       )}
+
+      {/* AI narrates, math decides: the brief may only restate the
+          server-computed numbers above. It's an enhancement — the verdict
+          never depends on it (or on JavaScript). */}
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>AI deal brief</h2>
+          <AiBadge />
+        </div>
+        <DealBrief
+          make={parsed.make}
+          year={parsed.year}
+          model={parsed.model}
+          quote={priceContext.quote}
+        />
+      </section>
     </main>
   );
 }

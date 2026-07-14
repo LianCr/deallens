@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { executeGraphQL } from "@/graphql/yoga";
 import { dealPath } from "@/lib/vehicleUrl";
 import { PickerForm } from "@/components/PickerForm/PickerForm";
+import { NlFinder } from "@/components/NlFinder/NlFinder";
 import styles from "./page.module.css";
 
 /**
@@ -97,6 +98,12 @@ export default async function Home({
         where it lands in the market — not just a number, but the context
         around it.
       </p>
+
+      {/* AI is an on-ramp, not a dependency: the classic picker below
+          works without it (and without JavaScript). */}
+      <section className={styles.finderSection}>
+        <NlFinder />
+      </section>
 
       <PickerForm
         makes={makes}

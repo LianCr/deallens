@@ -1,0 +1,51 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`buildDealFacts > is deterministic: the FACTS block is a stable snapshot 1`] = `
+"{
+ "vehicle": "2022 Honda Civic",
+ "quoteDollars": 24500,
+ "verdict": "FAIR",
+ "insufficientData": false,
+ "pricingDataSource": "DEMO",
+ "percentile": 47,
+ "p25Dollars": 23101,
+ "medianDollars": 24680,
+ "p75Dollars": 26201,
+ "deltaFromMedianDollars": -180,
+ "trend24Months": {
+  "months": 4,
+  "startMonth": "2024-08",
+  "startPrice": 26100,
+  "endMonth": "2026-07",
+  "endPrice": 24700,
+  "changeDollars": -1400,
+  "changePercent": -5.4,
+  "lowest": {
+   "month": "2025-03",
+   "price": 24101
+  },
+  "highest": {
+   "month": "2024-08",
+   "price": 26100
+  }
+ },
+ "marketEvents": [
+  {
+   "month": "2024-09",
+   "title": "2025 model year arrives",
+   "kind": "MODEL_YEAR"
+  },
+  {
+   "month": "2024-12",
+   "title": "Year-end clearance",
+   "kind": "SEASONAL"
+  }
+ ],
+ "annualFuel": {
+  "costDollars": 1234,
+  "combinedMpg": 35,
+  "assumedMilesPerYear": 12000,
+  "assumedDollarsPerGallon": 3.6
+ }
+}"
+`;
