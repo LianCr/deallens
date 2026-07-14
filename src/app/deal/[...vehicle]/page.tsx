@@ -1,51 +1,217 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { parseVehicleSegments, titleCase } from "@/lib/vehicleUrl";
+import { executeGraphQL } from "@/graphql/yoga";
+import { dealPath, parseVehicleSegments, titleCase } from "@/lib/vehicleUrl";
+import type { PriceBucket, MarketEvent, PricePoint, Verdict } from "@/domain/types";
+import {
+  annualFuelCost,
+  DEFAULT_DOLLARS_PER_GALLON,
+  DEFAULT_MILES_PER_YEAR,
+} from "@/domain/fuelCost";
+import { PriceContextChart } from "@/components/charts/PriceContextChart";
+import { DemoDataBadge, ProvenanceBadge } from "@/components/DataBadge/DataBadge";
 import styles from "./page.module.css";
 
 /**
  * Page 2 — Deal Dashboard. URL shape: /deal/{make}/{year}/{model}?quote=…
- * The URL is the whole state: shareable, server-renderable.
- *
- * M2 placeholder: parses and echoes the selection. The verdict hero,
- * distribution chart, and price history land in M3/M4.
+ * The URL is the whole state: shareable, and the verdict is computed
+ * server-side so the conclusion is readable with JavaScript disabled.
  */
 export const runtime = "nodejs";
 
-interface DealPageProps {
-  params: Promise<{ vehicle: string[] }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+interface PriceContext {
+  quote: number;
+  verdict: Verdict;
+  percentile: number | null;
+  p25: number | null;
+  median: number | null;
+  p75: number | null;
+  distribution: PriceBucket[];
+  history: PricePoint[];
+  events: MarketEvent[];
+  dataSource: "REAL" | "DEMO";
 }
 
-export default async function DealPage({ params, searchParams }: DealPageProps) {
+interface FuelEconomyData {
+  combinedMpg: number;
+  feModelName: string;
+  fuelType: string;
+}
+
+const VERDICT_COPY: Record<Verdict, { headline: string; tone: string }> = {
+  GREAT_DEAL: { headline: "Great deal", tone: "good" },
+  FAIR: { headline: "Fair price", tone: "neutral" },
+  ABOVE_MARKET: { headline: "Above market", tone: "bad" },
+  INSUFFICIENT_DATA: { headline: "Not enough data to say", tone: "neutral" },
+};
+
+const ordinal = (n: number): string => {
+  const rem10 = n % 10;
+  const rem100 = n % 100;
+  if (rem10 === 1 && rem100 !== 11) return `${n}st`;
+  if (rem10 === 2 && rem100 !== 12) return `${n}nd`;
+  if (rem10 === 3 && rem100 !== 13) return `${n}rd`;
+  return `${n}th`;
+};
+
+function verdictDetail(context: PriceContext): string {
+  if (context.verdict === "INSUFFICIENT_DATA" || context.median === null) {
+    return "This market is too thin to judge honestly — and we won't guess.";
+  }
+  const delta = Math.round(context.quote - context.median);
+  const abs = Math.abs(delta).toLocaleString("en-US");
+  const deltaText =
+    delta === 0
+      ? "Right at the median"
+      : `$${abs} ${delta < 0 ? "below" : "above"} the median`;
+  const pctText =
+    context.percentile === null
+      ? ""
+      : `, at the ${ordinal(Math.round(context.percentile))} percentile of this market`;
+  return `${deltaText} of comparable listings${pctText}.`;
+}
+
+export default async function DealPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ vehicle: string[] }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { vehicle } = await params;
   const parsed = parseVehicleSegments(vehicle);
   if (!parsed) notFound();
 
-  const quoteParam = (await searchParams).quote;
-  const quote = Number(Array.isArray(quoteParam) ? quoteParam[0] : quoteParam);
+  const query = await searchParams;
+  const quoteParam = Array.isArray(query.quote) ? query.quote[0] : query.quote;
+  const quote = Number(quoteParam);
   const hasQuote = Number.isInteger(quote) && quote > 0;
 
   const vehicleName = `${parsed.year} ${titleCase(parsed.make)} ${titleCase(parsed.model)}`;
+  const selfPath = dealPath(parsed.make, parsed.year, parsed.model);
+
+  if (!hasQuote) {
+    return (
+      <main className={styles.main}>
+        <Header vehicleName={vehicleName} />
+        <section className={styles.quotePrompt}>
+          <h2 className={styles.sectionTitle}>What did the dealer quote you?</h2>
+          <form action={selfPath} method="get" className={styles.quoteForm}>
+            <label className={styles.quoteLabel} htmlFor="deal-quote">
+              Dealer quote (USD)
+            </label>
+            <input
+              id="deal-quote"
+              name="quote"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              step={1}
+              required
+              placeholder="e.g. 24500"
+              className={styles.quoteInput}
+            />
+            <button type="submit" className={styles.quoteSubmit}>
+              See where it lands
+            </button>
+          </form>
+        </section>
+      </main>
+    );
+  }
+
+  const [{ priceContext }, fuelEconomy] = await Promise.all([
+    executeGraphQL<{ priceContext: PriceContext }>(
+      `query Deal($make: String!, $model: String!, $year: Int!, $quote: Int!) {
+        priceContext(make: $make, model: $model, year: $year, quote: $quote) {
+          quote verdict percentile p25 median p75
+          distribution { lo hi count }
+          history { month price }
+          events { month title kind }
+          dataSource
+        }
+      }`,
+      { make: parsed.make, model: parsed.model, year: parsed.year, quote },
+    ),
+    // Fuel economy is independent and allowed to fail without taking
+    // the verdict down with it: null = hide the bar, honestly.
+    executeGraphQL<{ fuelEconomy: FuelEconomyData | null }>(
+      `query Fuel($make: String!, $model: String!, $year: Int!) {
+        fuelEconomy(make: $make, model: $model, year: $year) {
+          combinedMpg feModelName fuelType
+        }
+      }`,
+      { make: parsed.make, model: parsed.model, year: parsed.year },
+    ).then(
+      (data) => data.fuelEconomy,
+      () => null,
+    ),
+  ]);
+
+  const copy = VERDICT_COPY[priceContext.verdict];
+  const fuelCost = fuelEconomy
+    ? annualFuelCost({ combinedMpg: fuelEconomy.combinedMpg })
+    : null;
 
   return (
     <main className={styles.main}>
-      <p className={styles.breadcrumb}>
-        <Link href="/">← Pick a different car</Link>
-      </p>
-      <h1 className={styles.title}>{vehicleName}</h1>
-      {hasQuote ? (
-        <p className={styles.quote}>
-          Dealer quote: <strong>${quote.toLocaleString("en-US")}</strong>
+      <Header vehicleName={vehicleName} />
+
+      {/* Hero verdict — server-rendered, readable without JS. */}
+      <section className={styles.hero} data-tone={copy.tone} data-testid="verdict-hero">
+        <p className={styles.heroQuote}>
+          Dealer quote: <strong>${priceContext.quote.toLocaleString("en-US")}</strong>
         </p>
-      ) : (
-        <p className={styles.quote}>No quote entered yet.</p>
+        <h2 className={styles.heroVerdict}>{copy.headline}</h2>
+        <p className={styles.heroDetail}>{verdictDetail(priceContext)}</p>
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Where this quote lands in the market</h2>
+          {priceContext.dataSource === "DEMO" && <DemoDataBadge />}
+        </div>
+        <PriceContextChart
+          buckets={priceContext.distribution}
+          quote={priceContext.quote}
+          p25={priceContext.p25}
+          median={priceContext.median}
+          p75={priceContext.p75}
+        />
+      </section>
+
+      {fuelEconomy && fuelCost !== null && (
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Cost to own: fuel</h2>
+          </div>
+          <p className={styles.fuelCost}>
+            <strong>${fuelCost.toLocaleString("en-US")}</strong> per year
+            <span className={styles.fuelDetail}>
+              {" "}
+              at {fuelEconomy.combinedMpg} MPG combined (EPA,{" "}
+              {fuelEconomy.feModelName}, {fuelEconomy.fuelType.toLowerCase()}) —
+              assuming {DEFAULT_MILES_PER_YEAR.toLocaleString("en-US")} miles/year
+              and ${DEFAULT_DOLLARS_PER_GALLON.toFixed(2)}/gallon. Real data,
+              explicit assumptions.
+            </span>
+          </p>
+        </section>
       )}
-      <p className={styles.placeholder}>
-        The price-context dashboard for this vehicle is under construction
-        (next milestone): verdict, market distribution, and 24-month price
-        history.
-      </p>
     </main>
+  );
+}
+
+function Header({ vehicleName }: { vehicleName: string }) {
+  return (
+    <>
+      <div className={styles.topRow}>
+        <p className={styles.breadcrumb}>
+          <Link href="/">← Pick a different car</Link>
+        </p>
+        <ProvenanceBadge />
+      </div>
+      <h1 className={styles.title}>{vehicleName}</h1>
+    </>
   );
 }

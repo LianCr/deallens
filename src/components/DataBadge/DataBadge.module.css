@@ -1,0 +1,18 @@
+.demoBadge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--color-bad);
+  border: 1px solid color-mix(in srgb, var(--color-bad) 45%, transparent);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.provenance {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+}

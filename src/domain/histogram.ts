@@ -9,7 +9,7 @@ import type { PriceBucket } from "./types";
  */
 export function buildHistogram(
   values: readonly number[],
-  bucketCount = 24,
+  bucketCount = 16,
 ): PriceBucket[] {
   if (values.length === 0 || bucketCount < 1) return [];
   let min = Infinity;

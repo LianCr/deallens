@@ -1,5 +1,6 @@
 import DataLoader from "dataloader";
 import { fetchModelsForMakeYear, type VpicModel } from "@/sources/vpic";
+import { fetchFuelEconomy, type FuelEconomy } from "@/sources/fueleconomy";
 
 /**
  * Two cache tiers with different jobs:
@@ -29,6 +30,30 @@ async function loadModels(make: string, year: number): Promise<VpicModel[]> {
   const models = await fetchModelsForMakeYear(make, year);
   modelCatalogCache.set(key, { models, fetchedAt: Date.now() });
   return models;
+}
+
+const fuelEconomyCache = new Map<
+  string,
+  { record: FuelEconomy | null; fetchedAt: number }
+>();
+
+/**
+ * EPA figures for a model year never change; cache for a day (including
+ * honest nulls, so an unmatched model doesn't retry on every render).
+ */
+export async function loadFuelEconomy(
+  year: number,
+  make: string,
+  model: string,
+): Promise<FuelEconomy | null> {
+  const key = `${year}|${make.toLowerCase()}|${model.toLowerCase()}`;
+  const cached = fuelEconomyCache.get(key);
+  if (cached && Date.now() - cached.fetchedAt < DAY_MS) {
+    return cached.record;
+  }
+  const record = await fetchFuelEconomy(year, make, model);
+  fuelEconomyCache.set(key, { record, fetchedAt: Date.now() });
+  return record;
 }
 
 export interface Loaders {

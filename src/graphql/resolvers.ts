@@ -4,10 +4,9 @@ import { assessDeal } from "@/domain/verdict";
 import { buildHistogram } from "@/domain/histogram";
 import { UpstreamError } from "@/sources/errors";
 import { decodeVin } from "@/sources/vpic";
-import { fetchFuelEconomy } from "@/sources/fueleconomy";
 import { generatePricingDataset } from "@/sources/pricing-gen";
 import { MAKES, YEARS } from "./makes";
-import type { Loaders } from "./loaders";
+import { loadFuelEconomy, type Loaders } from "./loaders";
 
 export interface GraphQLContext {
   loaders: Loaders;
@@ -126,7 +125,7 @@ export const resolvers = {
     ) => {
       requireVehicleArgs(args.make, args.model, args.year);
       try {
-        const record = await fetchFuelEconomy(args.year, args.make, args.model);
+        const record = await loadFuelEconomy(args.year, args.make, args.model);
         if (record === null) return null;
         return { ...record, dataSource: "REAL" as const };
       } catch (cause) {

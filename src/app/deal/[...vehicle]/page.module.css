@@ -1,11 +1,20 @@
 .main {
   max-width: 56rem;
   margin: 0 auto;
-  padding: 3rem 1.5rem;
+  padding: 2.5rem 1.5rem 4rem;
+}
+
+.topRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
 }
 
 .breadcrumb {
-  margin: 0 0 1.5rem;
+  margin: 0;
   font-size: 0.9375rem;
 }
 
@@ -19,22 +28,137 @@
 }
 
 .title {
-  margin: 0 0 0.5rem;
+  margin: 0 0 1.5rem;
   font-size: 2rem;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
-.quote {
-  margin: 0 0 2rem;
-  font-size: 1.125rem;
+/* ——— Hero verdict ——— */
+
+.hero {
+  padding: 2rem;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--color-neutral) 35%, transparent);
+  margin-bottom: 2.5rem;
+}
+
+.hero[data-tone="good"] {
+  border-color: color-mix(in srgb, var(--color-good) 50%, transparent);
+  background: color-mix(in srgb, var(--color-good) 6%, transparent);
+}
+
+.hero[data-tone="bad"] {
+  border-color: color-mix(in srgb, var(--color-bad) 50%, transparent);
+  background: color-mix(in srgb, var(--color-bad) 6%, transparent);
+}
+
+.heroQuote {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
   color: var(--color-muted);
 }
 
-.placeholder {
-  padding: 1.5rem;
-  border: 1px dashed var(--color-neutral);
-  border-radius: 0.75rem;
+.heroVerdict {
+  margin: 0 0 0.5rem;
+  font-size: 3rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.hero[data-tone="good"] .heroVerdict {
+  color: var(--color-good);
+}
+
+.hero[data-tone="bad"] .heroVerdict {
+  color: var(--color-bad);
+}
+
+.heroDetail {
+  margin: 0;
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  color: var(--color-fg);
+}
+
+/* ——— Sections ——— */
+
+.section {
+  margin-bottom: 2.5rem;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.fuelCost {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.fuelDetail {
+  font-size: 0.9375rem;
   color: var(--color-muted);
   line-height: 1.6;
+}
+
+/* ——— Quote prompt (no quote in URL yet) ——— */
+
+.quotePrompt {
+  padding: 2rem;
+  border: 1px solid color-mix(in srgb, var(--color-neutral) 35%, transparent);
+  border-radius: 1rem;
+}
+
+.quoteForm {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: end;
+  margin-top: 1rem;
+}
+
+.quoteLabel {
+  display: block;
+  width: 100%;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.quoteInput {
+  height: 2.75rem;
+  padding: 0 0.75rem;
+  font-size: 1rem;
+  font-family: inherit;
+  color: var(--color-fg);
+  background: var(--color-bg);
+  border: 1px solid var(--color-neutral);
+  border-radius: 0.5rem;
+  flex: 1 1 12rem;
+}
+
+.quoteSubmit {
+  height: 2.75rem;
+  padding: 0 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--color-bg);
+  background: var(--color-fg);
+  border: 1px solid var(--color-fg);
+  border-radius: 0.5rem;
+  cursor: pointer;
 }
