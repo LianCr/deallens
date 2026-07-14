@@ -109,12 +109,46 @@ All upstream client behavior is locked by **contract tests against
 real captured payloads** (`src/fixtures/`) — format drift fails loudly
 instead of rendering an empty picker.
 
+## AI, constrained: "AI narrates, math decides"
+
+Edmunds was the first US car-shopping platform on ChatGPT plugins, and
+its [GenAI blueprint with Databricks](https://www.databricks.com/blog/how-edmunds-builds-blueprint-generative-ai)
+is explicitly data-centric: ground the LLM on proprietary structured
+data instead of using a general model bare. This repo implements that
+idea at demo scale, as an extension of the honesty red lines
+([ADR 005](docs/adr/005-ai-native.md)):
+
+- **AI deal brief** (dashboard): a streamed negotiation brief whose
+  every number comes from a server-computed FACTS block
+  ([`src/ai/dealFacts.ts`](src/ai/dealFacts.ts), pure + snapshot-tested).
+  The route accepts identifiers only and recomputes the pricing context
+  in-process — client numbers never reach the prompt. The output is
+  permanently labeled "AI-generated · grounded in the numbers above."
+- **Natural-language finder** (landing): "reliable family SUV under
+  $30k" → up to 3 candidates via structured outputs, constrained to the
+  29-make whitelist, then **verified against the live vPIC catalog —
+  hallucinated models are dropped, and the UI says how many**.
+- **Cost guardrails**: per-IP + global daily limits with honest 429
+  copy, a response cache bucketed by vehicle + quote (deterministic
+  pricing → most traffic is free), `MOCK_AI=1` for zero-cost
+  deterministic CI/E2E, and a bring-your-own-key card when no
+  `ANTHROPIC_API_KEY` is configured — clone-and-run stays keyless.
+
+Model: `claude-opus-4-8` (streaming for the brief, structured outputs
+for the finder, low effort for short copy). Worst-case spend is capped
+under $6/day by the global budget; the cache keeps actual spend far
+lower.
+
 ## Getting started
 
 ```bash
 npm install
 npm run dev        # no API keys — all sources are free public APIs
 ```
+
+AI features are optional: add `ANTHROPIC_API_KEY=…` to `.env.local` to
+enable them locally. Without a key, both AI surfaces degrade to an
+honest explanation and everything else works.
 
 | Command | What it does |
 | ------- | ------------ |
@@ -141,10 +175,12 @@ posting, line by line:
 | "cloud platform (plus)" | Vercel deployment + a concrete AWS Lambda/CloudFront migration path ([ADR 004](docs/adr/004-aws-deploy.md)) |
 | "streamline the way customers reach out to dealers" | The contact page: a lead form that submits without JavaScript, validates at field level, never shifts layout, and scores 100×4 |
 | "see projects through to completion" | This repo: CI green, deployed, plus a prior product in production ([smart-money-decoder](https://github.com/LianCr/smart-money-decoder)) |
+| Edmunds' own GenAI direction (ChatGPT plugin; Databricks data-centric blueprint) | "AI narrates, math decides": a grounded deal brief + catalog-verified NL search — LLM features that inherit the honesty red lines instead of breaking them ([ADR 005](docs/adr/005-ai-native.md)) |
 
 ## Screenshots
 
 | | |
 | --- | --- |
-| ![Picker](docs/screenshots/m5-picker.png) | ![Timeline pinned](docs/screenshots/m4-timeline-pinned.png) |
-| ![Dashboard](docs/screenshots/m3-dashboard.png) | ![Contact](docs/screenshots/m5-contact.png) |
+| ![Landing with NL finder](docs/screenshots/m7-landing.png) | ![AI deal brief, streamed and grounded](docs/screenshots/m6-brief-stream.png) |
+| ![NL finder results](docs/screenshots/m6-finder.png) | ![Dashboard, dark](docs/screenshots/m7-deal-dark.png) |
+| ![Timeline pinned](docs/screenshots/m4-timeline-pinned.png) | ![Contact](docs/screenshots/m5-contact.png) |
