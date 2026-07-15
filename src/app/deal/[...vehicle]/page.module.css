@@ -37,10 +37,14 @@
 /* ——— Hero verdict ——— */
 
 .hero {
-  padding: 2rem;
-  border-radius: 1rem;
-  border: 1px solid color-mix(in srgb, var(--color-neutral) 35%, transparent);
-  margin-bottom: 2.5rem;
+  padding: var(--space-xl) 2rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  margin-bottom: var(--space-xl);
+  /* No entrance animation, deliberately: the verdict is this page's LCP
+     element, and an opacity fade-in — even a 240ms one — pushed measured
+     LCP from ~0.6s to ~3.6s (Chrome ignores opacity-0 paints). Tried,
+     measured, reverted. Motion lives on non-LCP surfaces instead. */
 }
 
 .hero[data-tone="good"] {
@@ -61,7 +65,7 @@
 
 .heroVerdict {
   margin: 0 0 0.5rem;
-  font-size: 3rem;
+  font-size: clamp(2.125rem, 8vw, 3rem);
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.1;
@@ -107,7 +111,12 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex-wrap: wrap;
   margin-bottom: 1rem;
+}
+
+.sectionHeader > h2 {
+  flex: none;
 }
 
 .sectionTitle {
@@ -131,8 +140,9 @@
 
 .quotePrompt {
   padding: 2rem;
-  border: 1px solid color-mix(in srgb, var(--color-neutral) 35%, transparent);
-  border-radius: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
 }
 
 .quoteForm {

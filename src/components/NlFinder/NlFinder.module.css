@@ -1,0 +1,126 @@
+.finder {
+  display: grid;
+  gap: 0.875rem;
+}
+
+.form {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.input {
+  flex: 1 1 16rem;
+  padding: 0.625rem 0.875rem;
+  font: inherit;
+  color: var(--color-fg);
+  background: var(--color-bg);
+  border: 1px solid color-mix(in srgb, var(--color-fg) 25%, transparent);
+  border-radius: 0.5rem;
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--color-event-model-year);
+  outline-offset: 1px;
+}
+
+.submit {
+  padding: 0.625rem 1.125rem;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-bg);
+  background: var(--color-fg);
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: opacity 120ms ease;
+}
+
+.submit:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.submit:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.error {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--color-bad);
+}
+
+.empty {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--color-muted);
+}
+
+.results {
+  display: grid;
+  gap: 0.625rem;
+}
+
+.cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.625rem;
+}
+
+.card {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--color-fg) 18%, transparent);
+  border-radius: 0.75rem;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.card:hover {
+  border-color: color-mix(in srgb, var(--color-fg) 45%, transparent);
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .card:hover {
+    transform: none;
+  }
+}
+
+.cardTitle {
+  font-weight: 700;
+}
+
+.cardReason {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--color-muted);
+}
+
+.cardCta {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-event-model-year);
+}
+
+.honesty {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+}

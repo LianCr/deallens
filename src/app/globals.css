@@ -6,10 +6,48 @@
   --color-good: #0a7f3f;
   --color-bad: #c62828;
   --color-neutral: #6b7280;
-  /* Market-event kinds on the price timeline. */
-  --color-event-model-year: #4f46e5;
+  /* Informational accent (links, AI affordances). */
+  --color-accent: #4f46e5;
+  /* Single-series data color (distribution curve). Validated with the
+     event trio below via the dataviz palette checks (lightness band,
+     chroma floor, CVD separation, contrast) in both modes. */
+  --color-series: #4f46e5;
+  /* Market-event kinds on the price timeline. Model-year is magenta —
+     not indigo — so event dots never read as part of series-colored
+     marks; every dot also carries a bg ring and a labeled readout tag
+     (identity is never color-alone). */
+  --color-event-model-year: #be185d;
   --color-event-seasonal: #b45309;
-  --color-event-incentive: #0e7490;
+  --color-event-incentive: #0891b2;
+
+  /* Derived surfaces — every card/border in the app draws from these
+     so light and dark stay consistent by construction. */
+  --color-border: color-mix(in srgb, var(--color-fg) 14%, transparent);
+  --color-border-strong: color-mix(in srgb, var(--color-fg) 32%, transparent);
+  --color-surface: color-mix(in srgb, var(--color-fg) 3.5%, var(--color-bg));
+
+  /* Radius scale: sm = controls, md = cards, lg = hero surfaces. */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+
+  /* Spacing scale (rem). */
+  --space-2xs: 0.25rem;
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2.5rem;
+  --space-2xl: 4rem;
+
+  /* Type scale. */
+  --text-xs: 0.8125rem;
+  --text-sm: 0.9375rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+  --text-display: clamp(2.5rem, 6vw, 3.25rem);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -20,9 +58,13 @@
     --color-good: #4ade80;
     --color-bad: #f87171;
     --color-neutral: #9ca3af;
-    --color-event-model-year: #818cf8;
-    --color-event-seasonal: #f59e0b;
-    --color-event-incentive: #22d3ee;
+    --color-accent: #818cf8;
+    /* Dark mode is selected, not flipped: these are their own validated
+       steps against the dark surface. */
+    --color-series: #6366f1;
+    --color-event-model-year: #ec4899;
+    --color-event-seasonal: #d97706;
+    --color-event-incentive: #0aa5c2;
   }
 
   html {

@@ -105,6 +105,16 @@
   text-anchor: start;
 }
 
+/* The SVG scales with its viewBox, so on narrow screens 10px ticks
+   shrink below legibility. Larger in-viewBox sizes compensate for the
+   scale-down — vector text, so nothing else moves. */
+@media (max-width: 540px) {
+  .xTick,
+  .yTick {
+    font-size: 15px;
+  }
+}
+
 .line {
   fill: none;
   stroke-width: 2;
