@@ -34,6 +34,12 @@
   outline-offset: 1px;
 }
 
+/* Live dictation: muted until the recognizer settles on a final text. */
+.inputInterim {
+  color: var(--color-muted);
+  font-style: italic;
+}
+
 .submit {
   padding: 0.625rem 1.125rem;
   font: inherit;

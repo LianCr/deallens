@@ -1,0 +1,171 @@
+.thread {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid color-mix(in srgb, var(--color-fg) 12%, transparent);
+}
+
+.turn {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.question {
+  justify-self: end;
+  max-width: min(85%, 34rem);
+  margin: 0;
+  padding: 0.5rem 0.875rem;
+  background: color-mix(in srgb, var(--color-fg) 7%, transparent);
+  border-radius: 0.75rem 0.75rem 0.125rem 0.75rem;
+  font-size: 0.9375rem;
+}
+
+.answer {
+  justify-self: start;
+  max-width: min(92%, 40rem);
+  display: grid;
+  gap: 0.375rem;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid color-mix(in srgb, var(--color-fg) 12%, transparent);
+  border-radius: 0.75rem 0.75rem 0.75rem 0.125rem;
+}
+
+.answerText {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.cursor {
+  display: inline-block;
+  width: 0.55em;
+  height: 1em;
+  margin-left: 0.15em;
+  vertical-align: text-bottom;
+  background: var(--color-fg);
+  animation: ask-cursor-blink 1s steps(2, start) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+@keyframes ask-cursor-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+.form {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.inputRow {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5625rem 0.75rem;
+  font: inherit;
+  font-size: 0.9375rem;
+  color: var(--color-fg);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--color-fg) 25%, transparent);
+  border-radius: 0.5rem;
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.input:disabled {
+  opacity: 0.6;
+}
+
+/* Mic button mount point — collapses when feature detection leaves it
+   empty, so unsupported browsers pay no layout cost. */
+.inputAccessory {
+  display: flex;
+  align-items: center;
+}
+
+.inputAccessory:empty {
+  display: none;
+}
+
+/* Live dictation: muted until the recognizer settles on a final text. */
+.inputInterim {
+  color: var(--color-muted);
+  font-style: italic;
+}
+
+.ask {
+  padding: 0.5625rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-bg);
+  background: var(--color-fg);
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: opacity 120ms ease;
+}
+
+.ask:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.ask:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+}
+
+.errorRow {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+}
+
+.error {
+  margin: 0;
+  color: var(--color-bad);
+  font-size: 0.9375rem;
+}
+
+.retry {
+  padding: 0.5rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-bg);
+  background: var(--color-fg);
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: opacity 120ms ease;
+}
+
+.retry:hover {
+  opacity: 0.85;
+}

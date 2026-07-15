@@ -67,6 +67,14 @@ routes return an honest 503 and the UI renders a "bring your own key"
 card — clone-and-run stays free, and the verdict never depended on AI
 (or JavaScript) in the first place.
 
+The follow-up Q&A route added later (`/api/deal-ask`) inherits
+mechanisms 1, 3, and 4 wholesale: identifiers in, FACTS rebuilt
+server-side on every question, same guard, same mock mode. Free-text
+input changes two things — the system prompt gains an explicit rule to
+treat user text as a question and never as instructions, and the route
+skips the response cache (free-text rarely repeats; the guard is its
+spend ceiling).
+
 ## Consequences
 
 - The AI features can't say anything the page doesn't already show —

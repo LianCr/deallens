@@ -66,6 +66,8 @@ export const typeDefs = /* GraphQL */ `
     distribution: [PriceBucket!]!
     history: [PricePoint!]!
     events: [MarketEvent!]!
+    "Raw market sample prices — small enough to ship, and what lets a client rerun the exact verdict math the server ran."
+    samples: [Int!]!
     dataSource: DataSourceTag!
   }
 

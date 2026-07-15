@@ -125,6 +125,7 @@ export const resolvers = {
         distribution: buildHistogram(dataset.listings),
         history: dataset.history,
         events: dataset.events,
+        samples: dataset.listings,
         dataSource: dataset.dataSource,
       };
     },

@@ -41,6 +41,9 @@ test("sweeping the distribution shows a live percentile readout", async ({ page 
   await page.goto(DEAL_URL);
   const overlay = page.getByTestId("chart-overlay");
   await expect(overlay).toBeVisible();
+  // The quote-explorer slider made the hero taller, which can leave the
+  // chart below the fold — pull it into view so the hover connects.
+  await overlay.scrollIntoViewIfNeeded();
   const box = (await overlay.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await expect(overlay.locator("div").last()).toHaveText(/\$\d[\d,]* · cheaper than \d+% of listings/);

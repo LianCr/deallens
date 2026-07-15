@@ -97,6 +97,20 @@ design notes live in the
 what's new here is the SSR static skeleton upgraded in place on
 hydration — an isomorphic D3 chart with zero layout shift.
 
+## The quote explorer
+
+Drag "what if the quote were different?" on the dashboard and the
+verdict, percentile, and delta-from-median recompute at input speed —
+by importing the *same* zero-dependency domain functions the server
+rendered with (`assessDeal`, `percentileRank`), fed the same `samples`
+field the GraphQL gateway exposes. The chart's quote marker follows
+through transform-only DOM mutations (shared layout math in
+[`markerLayout.ts`](src/components/charts/PriceContextChart/markerLayout.ts),
+zero D3 in the island), and the URL tracks the explored quote via
+debounced `replaceState`, so any link you share server-renders the
+same conclusion. Without JavaScript the slider is a plain GET form the
+server answers — isomorphic JavaScript demonstrated in both directions.
+
 ## Data sources & honesty methodology
 
 | Source | Status | Notes |
@@ -128,6 +142,19 @@ idea at demo scale, as an extension of the honesty red lines
   $30k" → up to 3 candidates via structured outputs, constrained to the
   29-make whitelist, then **verified against the live vPIC catalog —
   hallucinated models are dropped, and the UI says how many**.
+- **Ask about this deal** (dashboard): multi-turn follow-up Q&A under
+  the brief. Every question re-grounds server-side — the route accepts
+  identifiers plus the question only, rebuilds the FACTS block, and
+  replays at most 4 prior turns; the prompt treats user text strictly
+  as a question, never as instructions. Anything FACTS can't answer
+  gets an honest "can't say". Deliberately uncached — the rate guard is
+  the spend ceiling.
+- **Voice input** on both NL surfaces: browser-native Web Speech API as
+  progressive enhancement — live interim transcription, a transcript
+  that stays editable and is never auto-submitted, and a mic that is
+  feature-detected out where the API is missing (Firefox) rather than
+  rendered dead. No second vendor, no second key
+  ([ADR 006](docs/adr/006-voice-input.md)).
 - **Cost guardrails**: per-IP + global daily limits with honest 429
   copy, a response cache bucketed by vehicle + quote (deterministic
   pricing → most traffic is free), `MOCK_AI=1` for zero-cost
@@ -166,21 +193,22 @@ posting, line by line:
 | ---------------- | ------------------------ |
 | "revamping the way we present pricing" | The whole product: verdict + distribution + history timeline — pricing as context, not a number |
 | "optimizing the performance of those pages" | Lighthouse CI budget gates (100/100/100/100 ×3 pages), 48–74 KB first-load JS, visibility-deferred chart hydration |
-| "modern Javascript best practices and client-side application design" | RSC/SSR architecture, URL-as-state, server actions with progressive enhancement, React×D3 division of labor, ADRs |
+| "modern Javascript best practices and client-side application design" | RSC/SSR architecture, URL-as-state, server actions with progressive enhancement, React×D3 division of labor, feature-detected voice dictation ([ADR 006](docs/adr/006-voice-input.md)), ADRs |
 | "building, unit testing, documenting, and refactoring client-side applications" | 100%-covered pure-function domain layer; per-component READMEs; the timeline is a documented refactor-port of production code |
 | "testing strategies … cross-browser compatibility" | Four-layer pyramid: unit → component → contract-vs-fixtures → E2E in chromium/firefox/webkit + no-JS |
-| "isomorphic Javascript (plus)" | Every conclusion server-rendered; usable with JS disabled (CI-enforced); isomorphic D3 skeletons |
+| "isomorphic Javascript (plus)" | Every conclusion server-rendered; usable with JS disabled (CI-enforced); isomorphic D3 skeletons; the quote explorer reruns the server's verdict math client-side from the same imported domain functions |
 | "designing APIs using GraphQL (plus)" | The gateway schema: honesty tags in the type system, nullable-by-design percentiles, classified error extensions ([ADR 003](docs/adr/003-graphql-gateway.md)) |
 | "Node.js (plus)" | graphql-yoga gateway aggregating three upstreams, DataLoader, tiered caching |
 | "cloud platform (plus)" | Vercel deployment + a concrete AWS Lambda/CloudFront migration path ([ADR 004](docs/adr/004-aws-deploy.md)) |
 | "streamline the way customers reach out to dealers" | The contact page: a lead form that submits without JavaScript, validates at field level, never shifts layout, and scores 100×4 |
 | "see projects through to completion" | This repo: CI green, deployed, plus a prior product in production ([smart-money-decoder](https://github.com/LianCr/smart-money-decoder)) |
-| Edmunds' own GenAI direction (ChatGPT plugin; Databricks data-centric blueprint) | "AI narrates, math decides": a grounded deal brief + catalog-verified NL search — LLM features that inherit the honesty red lines instead of breaking them ([ADR 005](docs/adr/005-ai-native.md)) |
+| Edmunds' own GenAI direction (ChatGPT plugin; Databricks data-centric blueprint) | "AI narrates, math decides": a grounded deal brief, re-grounded multi-turn Q&A, and catalog-verified NL search with voice — LLM features that inherit the honesty red lines instead of breaking them ([ADR 005](docs/adr/005-ai-native.md)) |
 
 ## Screenshots
 
 | | |
 | --- | --- |
 | ![Landing with NL finder](docs/screenshots/m7-landing.png) | ![AI deal brief, streamed and grounded](docs/screenshots/m6-brief-stream.png) |
-| ![NL finder results](docs/screenshots/m6-finder.png) | ![Dashboard, dark](docs/screenshots/m7-deal-dark.png) |
-| ![Timeline pinned](docs/screenshots/m4-timeline-pinned.png) | ![Contact](docs/screenshots/m5-contact.png) |
+| ![Quote explorer: live what-if verdict](docs/screenshots/m9-quote-explorer.png) | ![Ask about this deal, grounded Q&A](docs/screenshots/m10-ask-thread.png) |
+| ![Voice dictation, listening](docs/screenshots/m11-voice-listening.png) | ![NL finder results](docs/screenshots/m6-finder.png) |
+| ![Dashboard, dark](docs/screenshots/m7-deal-dark.png) | ![Timeline pinned](docs/screenshots/m4-timeline-pinned.png) |

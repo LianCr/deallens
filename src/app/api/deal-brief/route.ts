@@ -1,20 +1,18 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
-import { executeGraphQL } from "@/graphql/yoga";
-import { buildDealFacts, factsBlock } from "@/ai/dealFacts";
+import { factsBlock, type DealFacts } from "@/ai/dealFacts";
+import { loadDealFacts } from "@/ai/loadDealFacts";
 import { BRIEF_SYSTEM_PROMPT } from "@/ai/prompts";
 import { briefCacheKey, getAiGuard, getBriefCache } from "@/ai/guard";
-import { titleCase } from "@/lib/vehicleUrl";
-import { annualFuelCost, DEFAULT_DOLLARS_PER_GALLON, DEFAULT_MILES_PER_YEAR } from "@/domain/fuelCost";
-import type { MarketEvent, PriceBucket, PricePoint, Verdict } from "@/domain/types";
 
 /**
  * AI deal brief — streaming negotiation notes for one dealer quote.
  *
  * The route accepts only the four identifiers (make, year, model, quote)
  * and recomputes the PriceContext in-process through the same GraphQL
- * gateway the page uses. It never trusts numbers from the client, so
- * "AI narrates, math decides" is enforced server-side, not by convention.
+ * gateway the page uses (see src/ai/loadDealFacts.ts). It never trusts
+ * numbers from the client, so "AI narrates, math decides" is enforced
+ * server-side, not by convention.
  *
  * Response modes (x-deallens-ai header): "mock" (MOCK_AI=1, CI/E2E),
  * "cache" (finished brief replayed), "live" (streamed from the API).
@@ -28,19 +26,6 @@ const BodySchema = z.object({
   model: z.string().trim().min(1).max(60),
   quote: z.number().int().min(1).max(5_000_000),
 });
-
-interface PriceContextData {
-  quote: number;
-  verdict: Verdict;
-  percentile: number | null;
-  p25: number | null;
-  median: number | null;
-  p75: number | null;
-  distribution: PriceBucket[];
-  history: PricePoint[];
-  events: MarketEvent[];
-  dataSource: "REAL" | "DEMO";
-}
 
 const MOCK_BRIEF = [
   "**What the numbers say**\nThis quote sits close to the middle of the demo market for this vehicle — neither a steal nor an outlier.\n\n",
@@ -104,58 +89,12 @@ export async function POST(request: Request): Promise<Response> {
   if (cached !== undefined) return textResponse(cached, "cache");
 
   // Recompute the context server-side — the client's numbers are never used.
-  let priceContext: PriceContextData;
-  let fuelEconomy: { combinedMpg: number } | null;
+  let facts: DealFacts;
   try {
-    [{ priceContext }, fuelEconomy] = await Promise.all([
-      executeGraphQL<{ priceContext: PriceContextData }>(
-        `query BriefDeal($make: String!, $model: String!, $year: Int!, $quote: Int!) {
-          priceContext(make: $make, model: $model, year: $year, quote: $quote) {
-            quote verdict percentile p25 median p75
-            distribution { lo hi count }
-            history { month price }
-            events { month title kind }
-            dataSource
-          }
-        }`,
-        { make, model, year, quote },
-      ),
-      executeGraphQL<{ fuelEconomy: { combinedMpg: number } | null }>(
-        `query BriefFuel($make: String!, $model: String!, $year: Int!) {
-          fuelEconomy(make: $make, model: $model, year: $year) { combinedMpg }
-        }`,
-        { make, model, year },
-      ).then(
-        (data) => data.fuelEconomy,
-        () => null,
-      ),
-    ]);
+    facts = await loadDealFacts({ make, year, model, quote });
   } catch {
     return jsonError(502, "context-unavailable", "Couldn't compute the pricing context for this vehicle.");
   }
-
-  const fuelCost = fuelEconomy ? annualFuelCost({ combinedMpg: fuelEconomy.combinedMpg }) : null;
-  const facts = buildDealFacts({
-    vehicleName: `${year} ${titleCase(make)} ${titleCase(model)}`,
-    quote: priceContext.quote,
-    verdict: priceContext.verdict,
-    percentile: priceContext.percentile,
-    p25: priceContext.p25,
-    median: priceContext.median,
-    p75: priceContext.p75,
-    history: priceContext.history,
-    events: priceContext.events,
-    dataSource: priceContext.dataSource,
-    fuel:
-      fuelEconomy && fuelCost !== null
-        ? {
-            annualCost: fuelCost,
-            combinedMpg: fuelEconomy.combinedMpg,
-            milesPerYear: DEFAULT_MILES_PER_YEAR,
-            dollarsPerGallon: DEFAULT_DOLLARS_PER_GALLON,
-          }
-        : null,
-  });
 
   const anthropic = new Anthropic();
   const stream = anthropic.messages.stream({

@@ -33,7 +33,8 @@ export function AiBadge() {
   );
 }
 
-function ByokCard() {
+/** Honest 503 state, shared with AskThread — no key, no retry theater. */
+export function ByokCard() {
   return (
     <div className={styles.byok} data-testid="byok-card">
       <p className={styles.byokTitle}>Bring your own key</p>

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { MicButton } from "@/components/VoiceInput/MicButton";
+import type { SpeechRecognitionCtor } from "@/lib/useSpeechInput";
 import styles from "./NlFinder.module.css";
 
 /**
@@ -10,6 +12,11 @@ import styles from "./NlFinder.module.css";
  * verifies every candidate against the vPIC catalog — this component
  * only renders what survived. The classic picker below never depends
  * on it.
+ *
+ * Voice input is progressive enhancement on top: dictation streams
+ * interim text into the (visually muted) input and the final text is
+ * left editable — never auto-submitted. The user confirms what was
+ * heard before anything reaches the model.
  */
 
 interface Candidate {
@@ -32,8 +39,15 @@ interface ApiError {
   message: string;
 }
 
-export function NlFinder() {
+interface NlFinderProps {
+  /** Test seam for voice input (see useSpeechInput); omit in production. */
+  speechRecognitionCtor?: SpeechRecognitionCtor | null;
+}
+
+export function NlFinder({ speechRecognitionCtor }: NlFinderProps = {}) {
   const [query, setQuery] = useState("");
+  /** True while the input shows a live, not-yet-final dictation. */
+  const [dictating, setDictating] = useState(false);
   const [phase, setPhase] = useState<Phase>("idle");
   const [result, setResult] = useState<FindResult>({ candidates: [], dropped: 0 });
   const [error, setError] = useState<ApiError | null>(null);
@@ -77,12 +91,28 @@ export function NlFinder() {
           <input
             id="nl-finder-input"
             data-testid="nl-finder-input"
-            className={styles.input}
+            className={dictating ? `${styles.input} ${styles.inputInterim}` : styles.input}
             type="text"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setDictating(false);
+              setQuery(event.target.value);
+            }}
             placeholder="e.g. reliable family SUV under $30k"
             maxLength={300}
+          />
+          <MicButton
+            recognitionCtor={speechRecognitionCtor}
+            onInterim={(text) => {
+              setDictating(true);
+              setQuery(text);
+            }}
+            onFinal={(text) => {
+              // Editable, never auto-submitted: the user reviews what
+              // was heard and presses the button themselves.
+              setDictating(false);
+              setQuery(text);
+            }}
           />
           <button type="submit" className={styles.submit} disabled={phase === "loading"}>
             {phase === "loading" ? "Thinking…" : "Find candidates"}

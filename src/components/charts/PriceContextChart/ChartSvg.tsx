@@ -5,12 +5,13 @@
  * top without redrawing it.
  */
 import type { PriceBucket } from "@/domain/types";
+import { buildDistributionShape } from "./math";
 import {
-  buildDistributionShape,
   DEFAULT_GEOMETRY,
   formatDollars,
+  quoteMarkerLayout,
   type ChartGeometry,
-} from "./math";
+} from "./markerLayout";
 import styles from "./PriceContextChart.module.css";
 
 export interface ChartSvgProps {
@@ -36,10 +37,10 @@ export function ChartSvg({
   const { x } = shape;
   const plotTop = margin.top;
   const plotBottom = height - margin.bottom;
-  const clampedQuoteX = Math.max(
-    margin.left,
-    Math.min(width - margin.right, x(quote)),
-  );
+  const [domainLo, domainHi] = x.domain() as [number, number];
+  // The same zero-dep function the QuoteExplorer island runs client-side
+  // to move this marker live — server and client can't disagree.
+  const marker = quoteMarkerLayout(quote, domainLo, domainHi, geometry);
 
   return (
     <svg
@@ -74,46 +75,51 @@ export function ChartSvg({
 
       {/* The shopper's quote — the loudest mark on the chart. Anchor
           flips near the edges so the label never runs off or collides
-          with the domain labels (which yield to it). */}
-      <line
-        x1={clampedQuoteX}
-        x2={clampedQuoteX}
-        y1={plotTop}
-        y2={plotBottom}
-        className={styles.quoteLine}
-      />
-      <circle cx={clampedQuoteX} cy={plotTop} r={5} className={styles.quoteDot} />
-      <text
-        x={clampedQuoteX}
-        y={plotBottom + 20}
-        textAnchor={
-          clampedQuoteX < margin.left + 70
-            ? "start"
-            : clampedQuoteX > width - margin.right - 70
-              ? "end"
-              : "middle"
-        }
-        className={styles.quoteLabel}
-      >
-        your quote {formatDollars(quote)}
-      </text>
-
-      {/* Domain edge labels — hidden when the quote label needs the space. */}
-      {clampedQuoteX > margin.left + 150 && (
-        <text x={margin.left} y={plotBottom + 20} textAnchor="start" className={styles.axisLabel}>
-          {formatDollars(shape.x.domain()[0]!)}
-        </text>
-      )}
-      {clampedQuoteX < width - margin.right - 150 && (
+          with the domain labels (which yield to it). The group carries a
+          data hook so the QuoteExplorer island can slide it (transform
+          only) as the shopper explores other quotes. */}
+      <g data-quote-marker>
+        <line
+          x1={marker.x}
+          x2={marker.x}
+          y1={plotTop}
+          y2={plotBottom}
+          className={styles.quoteLine}
+        />
+        <circle cx={marker.x} cy={plotTop} r={5} className={styles.quoteDot} />
         <text
-          x={width - margin.right}
+          data-quote-label
+          x={marker.x}
           y={plotBottom + 20}
-          textAnchor="end"
-          className={styles.axisLabel}
+          textAnchor={marker.anchor}
+          className={styles.quoteLabel}
         >
-          {formatDollars(shape.x.domain()[1]!)}
+          your quote {formatDollars(quote)}
         </text>
-      )}
+      </g>
+
+      {/* Domain edge labels — hidden (not removed, so the island can
+          toggle them) when the quote label needs the space. */}
+      <text
+        data-axis-lo
+        x={margin.left}
+        y={plotBottom + 20}
+        textAnchor="start"
+        visibility={marker.showLoLabel ? undefined : "hidden"}
+        className={styles.axisLabel}
+      >
+        {formatDollars(domainLo)}
+      </text>
+      <text
+        data-axis-hi
+        x={width - margin.right}
+        y={plotBottom + 20}
+        textAnchor="end"
+        visibility={marker.showHiLabel ? undefined : "hidden"}
+        className={styles.axisLabel}
+      >
+        {formatDollars(domainHi)}
+      </text>
     </svg>
   );
 }
