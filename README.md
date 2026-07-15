@@ -158,9 +158,15 @@ idea at demo scale, as an extension of the honesty red lines
   the brief. Every question re-grounds server-side — the route accepts
   identifiers plus the question only, rebuilds the FACTS block, and
   replays at most 4 prior turns; the prompt treats user text strictly
-  as a question, never as instructions. Anything FACTS can't answer
-  gets an honest "can't say". Deliberately uncached — the rate guard is
-  the spend ceiling.
+  as a question, never as instructions. Deliberately uncached — the
+  rate guard is the spend ceiling.
+- **Real web research** (brief + Q&A): the coach does homework on the
+  exact vehicle via Anthropic's server-side web-search tool — open
+  recalls, current incentives, widely-reported model issues — with
+  every finding attributed to its source inline. Web findings never
+  replace the FACTS block as this deal's verdict math; `max_uses` caps
+  per-request searches and `AI_WEB_SEARCH=0` turns it off
+  ([ADR 005](docs/adr/005-ai-native.md)).
 - **Voice input, two tiers** on both NL surfaces
   ([ADR 006](docs/adr/006-voice-input.md)): the keyless default is the
   browser's Web Speech API, tuned to survive mid-sentence pauses

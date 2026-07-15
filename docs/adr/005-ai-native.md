@@ -75,6 +75,39 @@ treat user text as a question and never as instructions, and the route
 skips the response cache (free-text rarely repeats; the guard is its
 spend ceiling).
 
+## Amendment: the grounding line moved — deliberately
+
+Field use showed "FACTS-only, refuse everything else" produced a
+useless coach: it punted on "what fits a $500/month budget?" and
+robot-declined jokes. The fix separates what the rule was actually
+protecting from what it accidentally banned. The prompts now define
+three knowledge zones: (1) **this deal's market numbers** come only
+from FACTS — the untouchable core, unchanged; (2) **general automotive
+knowledge** (the model's real-world knowledge of the vehicle,
+negotiation craft, financing concepts) is allowed and encouraged, but
+voiced as general knowledge, never as DealLens data; (3) **rough
+arithmetic** (payment budgets) is allowed with the assumption stated
+and an explicit "rough math, not a quote" label. The on-page
+disclosure changed in step, so the page never promises more grounding
+than the prompt enforces.
+
+A fourth zone followed: **real web research**, via Anthropic's
+server-side web-search tool (`web_search_20260209`, dynamic filtering
+built in). The coach can now check open recalls, current incentives,
+and widely-reported model issues for the exact vehicle — with three
+rules that keep the honesty spine intact: every web-sourced claim
+names its source inline; web findings never replace FACTS as this
+deal's verdict math (real asking prices that differ from the demo
+dataset are reported as exactly that — attributed and side by side);
+and an unavailable or empty search means answering without it, never
+fabricating a finding. Cost stays bounded the same way as everything
+else: searches bill at $10 per 1,000, `max_uses` caps each request (3
+for the brief, 2 per question), the shared guard caps requests per
+day (raising the documented worst-case spend ceiling from ~$6 to
+~$15/day), the brief's response cache means repeat deals never
+re-search, and `AI_WEB_SEARCH=0` switches the tool off without a
+deploy.
+
 ## Consequences
 
 - The AI features can't say anything the page doesn't already show —

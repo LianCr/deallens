@@ -219,8 +219,9 @@ export function AskThread({
             </button>
           </div>
           <p className={styles.hint}>
-            Answers come only from the numbers on this page — anything else gets an honest
-            &ldquo;can&rsquo;t say&rdquo;.
+            This deal&rsquo;s pricing comes only from the numbers on this page; general
+            knowledge is the model&rsquo;s own, and web research arrives with its source
+            named.
           </p>
         </form>
       )}
