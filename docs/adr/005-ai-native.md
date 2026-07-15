@@ -91,6 +91,23 @@ and an explicit "rough math, not a quote" label. The on-page
 disclosure changed in step, so the page never promises more grounding
 than the prompt enforces.
 
+A fourth zone followed: **real web research**, via Anthropic's
+server-side web-search tool (`web_search_20260209`, dynamic filtering
+built in). The coach can now check open recalls, current incentives,
+and widely-reported model issues for the exact vehicle — with three
+rules that keep the honesty spine intact: every web-sourced claim
+names its source inline; web findings never replace FACTS as this
+deal's verdict math (real asking prices that differ from the demo
+dataset are reported as exactly that — attributed and side by side);
+and an unavailable or empty search means answering without it, never
+fabricating a finding. Cost stays bounded the same way as everything
+else: searches bill at $10 per 1,000, `max_uses` caps each request (3
+for the brief, 2 per question), the shared guard caps requests per
+day (raising the documented worst-case spend ceiling from ~$6 to
+~$15/day), the brief's response cache means repeat deals never
+re-search, and `AI_WEB_SEARCH=0` switches the tool off without a
+deploy.
+
 ## Consequences
 
 - The AI features can't say anything the page doesn't already show —

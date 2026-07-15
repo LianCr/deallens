@@ -42,9 +42,13 @@ describe("ASK_SYSTEM_PROMPT", () => {
     expect(ASK_SYSTEM_PROMPT).toContain("no headings");
   });
 
-  it("never claims to have searched the web", () => {
-    expect(ASK_SYSTEM_PROMPT).toContain("Never pretend to have searched the web");
-    expect(BRIEF_SYSTEM_PROMPT).toContain("no pretending to have searched the web");
+  it("web research is real, attributed, and never a substitute for FACTS", () => {
+    for (const prompt of [ASK_SYSTEM_PROMPT, BRIEF_SYSTEM_PROMPT]) {
+      expect(prompt).toContain("WEB RESEARCH");
+      expect(prompt).toContain("Name the source inline");
+      expect(prompt).toContain("Web findings never replace FACTS");
+      expect(prompt).toContain("never fabricate a finding");
+    }
   });
 });
 

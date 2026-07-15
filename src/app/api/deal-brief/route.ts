@@ -4,6 +4,7 @@ import { factsBlock, type DealFacts } from "@/ai/dealFacts";
 import { loadDealFacts } from "@/ai/loadDealFacts";
 import { BRIEF_SYSTEM_PROMPT } from "@/ai/prompts";
 import { briefCacheKey, getAiGuard, getBriefCache } from "@/ai/guard";
+import { BRIEF_SEARCH_MAX_USES, webSearchTools } from "@/ai/webSearch";
 
 /**
  * AI deal brief — streaming negotiation notes for one dealer quote.
@@ -109,9 +110,11 @@ export async function POST(request: Request): Promise<Response> {
   const anthropic = new Anthropic();
   const stream = anthropic.messages.stream({
     model: "claude-opus-4-8",
-    max_tokens: 600,
+    // Headroom for search-round narration on top of the brief itself.
+    max_tokens: 1000,
     output_config: { effort: "low" },
     system: BRIEF_SYSTEM_PROMPT,
+    tools: webSearchTools(BRIEF_SEARCH_MAX_USES),
     messages: [{ role: "user", content: `FACTS:\n${factsBlock(facts)}` }],
   });
 
@@ -119,13 +122,19 @@ export async function POST(request: Request): Promise<Response> {
   let fullText = "";
   const body = new ReadableStream<Uint8Array>({
     start(controller) {
+      // Server-tool blocks (search queries/results) are not text events,
+      // so only the brief's prose reaches the client — as before.
       stream.on("text", (delta) => {
         fullText += delta;
         controller.enqueue(encoder.encode(delta));
       });
       stream.finalMessage().then(
-        () => {
-          if (fullText.length > 0) getBriefCache().set(cacheKey, fullText);
+        (message) => {
+          // A pause_turn means the server-side search loop was cut short;
+          // ship what we have but don't cache a possibly-partial brief.
+          if (fullText.length > 0 && message.stop_reason !== "pause_turn") {
+            getBriefCache().set(cacheKey, fullText);
+          }
           controller.close();
         },
         (error) => controller.error(error),

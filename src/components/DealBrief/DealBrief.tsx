@@ -143,7 +143,8 @@ export function DealBrief({ make, year, model, quote }: DealBriefProps) {
     <div className={styles.brief} data-testid="deal-brief">
       <p className={styles.disclaimer}>
         AI narrates, math decides — this deal&rsquo;s pricing comes only from the numbers
-        above; general car advice is the model&rsquo;s own, said as such.
+        above; general car advice is the model&rsquo;s own, and web research arrives with
+        its source named.
       </p>
 
       {phase === "idle" && (

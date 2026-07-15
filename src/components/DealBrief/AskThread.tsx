@@ -220,7 +220,8 @@ export function AskThread({
           </div>
           <p className={styles.hint}>
             This deal&rsquo;s pricing comes only from the numbers on this page; general
-            car-buying knowledge is the model&rsquo;s own, said as such.
+            knowledge is the model&rsquo;s own, and web research arrives with its source
+            named.
           </p>
         </form>
       )}

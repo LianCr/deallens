@@ -3,6 +3,7 @@ import { factsBlock, type DealFacts } from "@/ai/dealFacts";
 import { loadDealFacts } from "@/ai/loadDealFacts";
 import { ASK_SYSTEM_PROMPT } from "@/ai/prompts";
 import { getAiGuard } from "@/ai/guard";
+import { ASK_SEARCH_MAX_USES, webSearchTools } from "@/ai/webSearch";
 import { AskBodySchema, type AskBody } from "./schema";
 
 /**
@@ -108,9 +109,11 @@ export async function POST(request: Request): Promise<Response> {
   const anthropic = new Anthropic();
   const stream = anthropic.messages.stream({
     model: "claude-opus-4-8",
-    max_tokens: 300,
+    // Headroom for search-round narration on top of the answer itself.
+    max_tokens: 600,
     output_config: { effort: "low" },
     system: ASK_SYSTEM_PROMPT,
+    tools: webSearchTools(ASK_SEARCH_MAX_USES),
     messages: buildMessages(facts, turns, question),
   });
 
