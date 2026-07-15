@@ -184,26 +184,6 @@ honest explanation and everything else works.
 | `npm run lint` / `npm run typecheck` | ESLint / strict TypeScript |
 | `npx lhci autorun` | Lighthouse budget gate, same as CI |
 
-## JD mapping
-
-Built as a working answer to the Edmunds Mid-Level Software Engineer
-posting, line by line:
-
-| The posting says | Where it is in this repo |
-| ---------------- | ------------------------ |
-| "revamping the way we present pricing" | The whole product: verdict + distribution + history timeline — pricing as context, not a number |
-| "optimizing the performance of those pages" | Lighthouse CI budget gates (100/100/100/100 ×3 pages), 48–74 KB first-load JS, visibility-deferred chart hydration |
-| "modern Javascript best practices and client-side application design" | RSC/SSR architecture, URL-as-state, server actions with progressive enhancement, React×D3 division of labor, feature-detected voice dictation ([ADR 006](docs/adr/006-voice-input.md)), ADRs |
-| "building, unit testing, documenting, and refactoring client-side applications" | 100%-covered pure-function domain layer; per-component READMEs; the timeline is a documented refactor-port of production code |
-| "testing strategies … cross-browser compatibility" | Four-layer pyramid: unit → component → contract-vs-fixtures → E2E in chromium/firefox/webkit + no-JS |
-| "isomorphic Javascript (plus)" | Every conclusion server-rendered; usable with JS disabled (CI-enforced); isomorphic D3 skeletons; the quote explorer reruns the server's verdict math client-side from the same imported domain functions |
-| "designing APIs using GraphQL (plus)" | The gateway schema: honesty tags in the type system, nullable-by-design percentiles, classified error extensions ([ADR 003](docs/adr/003-graphql-gateway.md)) |
-| "Node.js (plus)" | graphql-yoga gateway aggregating three upstreams, DataLoader, tiered caching |
-| "cloud platform (plus)" | Vercel deployment + a concrete AWS Lambda/CloudFront migration path ([ADR 004](docs/adr/004-aws-deploy.md)) |
-| "streamline the way customers reach out to dealers" | The contact page: a lead form that submits without JavaScript, validates at field level, never shifts layout, and scores 100×4 |
-| "see projects through to completion" | This repo: CI green, deployed, plus a prior product in production ([smart-money-decoder](https://github.com/LianCr/smart-money-decoder)) |
-| Edmunds' own GenAI direction (ChatGPT plugin; Databricks data-centric blueprint) | "AI narrates, math decides": a grounded deal brief, re-grounded multi-turn Q&A, and catalog-verified NL search with voice — LLM features that inherit the honesty red lines instead of breaking them ([ADR 005](docs/adr/005-ai-native.md)) |
-
 ## Screenshots
 
 | | |

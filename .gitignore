@@ -46,3 +46,6 @@ next-env.d.ts
 /blob-report/
 /.lighthouseci/
 .claude/
+
+# Local build spec — never publish
+CLAUDE.md
