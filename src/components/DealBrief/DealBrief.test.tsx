@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { setDealTarget } from "@/lib/dealTarget";
 import { AiBadge, DealBrief } from "./DealBrief";
 
 const props = { make: "honda", year: 2022, model: "civic", quote: 24500 };
@@ -20,6 +21,7 @@ function streamResponse(chunks: string[]): Response {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  setDealTarget(null);
 });
 
 describe("DealBrief", () => {
@@ -79,6 +81,36 @@ describe("DealBrief", () => {
       expect(screen.getByText(/AI is resting/i)).toBeInTheDocument(),
     );
     expect(screen.getByRole("button", { name: /try again/i })).toBeInTheDocument();
+  });
+
+  it("targets the explored price: button copy and request body follow the store", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(streamResponse(["**Your target**\nok"]));
+    vi.stubGlobal("fetch", fetchMock);
+    setDealTarget(23950);
+    render(<DealBrief {...props} />);
+
+    const button = screen.getByRole("button", {
+      name: /draft a brief to negotiate toward \$23,950/i,
+    });
+    fireEvent.click(button);
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    const body = JSON.parse(fetchMock.mock.calls[0]![1].body as string);
+    expect(body).toMatchObject({ ...props, target: 23950 });
+  });
+
+  it("ignores a target equal to the dealer's quote — nothing to negotiate toward", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(streamResponse(["ok"]));
+    vi.stubGlobal("fetch", fetchMock);
+    setDealTarget(props.quote);
+    render(<DealBrief {...props} />);
+
+    const button = screen.getByRole("button", { name: /draft my negotiation brief/i });
+    fireEvent.click(button);
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    const body = JSON.parse(fetchMock.mock.calls[0]![1].body as string);
+    expect(body).toEqual(props);
   });
 
   it("always shows the grounding disclaimer", () => {

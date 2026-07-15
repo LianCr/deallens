@@ -122,16 +122,20 @@ export class ResponseCache {
 /**
  * Cache key for a deal brief. Quotes are bucketed in ~2% logarithmic
  * steps: two quotes within 2% of each other land in the same market
- * position, so they can share a brief — and share its cost.
+ * position, so they can share a brief — and share its cost. The
+ * shopper's negotiation target (when present) is bucketed the same way:
+ * a brief aimed at $23,000 must not be replayed for one aimed at $25,000.
  */
 export function briefCacheKey(
   make: string,
   year: number,
   model: string,
   quote: number,
+  target?: number,
 ): string {
-  const bucket = Math.round(Math.log(quote) / Math.log(1.02));
-  return `${make.toLowerCase()}/${year}/${model.toLowerCase()}@${bucket}`;
+  const bucket = (value: number): number => Math.round(Math.log(value) / Math.log(1.02));
+  const targetPart = target === undefined ? "" : `~t${bucket(target)}`;
+  return `${make.toLowerCase()}/${year}/${model.toLowerCase()}@${bucket(quote)}${targetPart}`;
 }
 
 /**

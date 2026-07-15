@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useDealTarget } from "@/lib/dealTarget";
 import styles from "./DealBrief.module.css";
 
 /**
@@ -80,6 +81,16 @@ export function DealBrief({ make, year, model, quote }: DealBriefProps) {
   const [text, setText] = useState("");
   const [error, setError] = useState<ApiError | null>(null);
 
+  // The explored price the QuoteExplorer published. When it differs
+  // from the dealer's quote, the brief negotiates toward it — the
+  // explore → decide → act loop closes here.
+  const dealTarget = useDealTarget();
+  const target = dealTarget !== null && dealTarget !== quote ? dealTarget : null;
+  const generateLabel =
+    target !== null
+      ? `Draft a brief to negotiate toward $${target.toLocaleString("en-US")}`
+      : "Draft my negotiation brief";
+
   async function generate() {
     setPhase("streaming");
     setText("");
@@ -88,7 +99,13 @@ export function DealBrief({ make, year, model, quote }: DealBriefProps) {
       const response = await fetch("/api/deal-brief", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ make, year, model, quote }),
+        body: JSON.stringify({
+          make,
+          year,
+          model,
+          quote,
+          ...(target !== null ? { target } : {}),
+        }),
       });
       if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as ApiError | null;
@@ -130,7 +147,7 @@ export function DealBrief({ make, year, model, quote }: DealBriefProps) {
 
       {phase === "idle" && (
         <button type="button" className={styles.generate} onClick={generate}>
-          Draft my negotiation brief
+          {generateLabel}
         </button>
       )}
 

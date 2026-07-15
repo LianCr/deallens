@@ -73,6 +73,23 @@ export function ChartSvg({
         median {formatDollars(median)}
       </text>
 
+      {/* Ghost of the dealer's original quote: a dimmed copy of the
+          quote marker, invisible (opacity 0) until the QuoteExplorer
+          island starts exploring a different price — then it raises the
+          opacity (ref mutation, same channel as the marker sync) so the
+          real quote stays anchored on screen. It never moves and takes
+          no layout space, so toggling it shifts nothing. */}
+      <g data-quote-origin opacity={0} aria-hidden="true">
+        <line
+          x1={marker.x}
+          x2={marker.x}
+          y1={plotTop}
+          y2={plotBottom}
+          className={styles.quoteLine}
+        />
+        <circle cx={marker.x} cy={plotTop} r={5} className={styles.quoteDot} />
+      </g>
+
       {/* The shopper's quote — the loudest mark on the chart. Anchor
           flips near the edges so the label never runs off or collides
           with the domain labels (which yield to it). The group carries a

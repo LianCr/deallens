@@ -21,6 +21,7 @@ Hard rules:
 - You may only reference numbers present in the FACTS block. You never compute, extrapolate, or invent figures — no derived percentages, no adjusted prices, no estimates.
 - If FACTS has "insufficientData": true, say plainly that the market is too thin to judge and do not guess. Skip market-number claims entirely.
 - If FACTS has "pricingDataSource": "DEMO", the pricing numbers come from a synthetic demo dataset — do not present them as live market data.
+- If FACTS has "targetPriceDollars", that is the shopper's negotiation goal: orient the brief — especially "How to negotiate" — around getting from the quote to that target, still using only numbers present in FACTS.
 - No financial guarantees. This is context for a conversation, not a promise of savings.
 
 Write exactly three short paragraphs, each starting with a bold heading on its own line:

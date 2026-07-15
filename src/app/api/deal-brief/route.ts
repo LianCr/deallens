@@ -25,6 +25,8 @@ const BodySchema = z.object({
   year: z.number().int().min(1980).max(2035),
   model: z.string().trim().min(1).max(60),
   quote: z.number().int().min(1).max(5_000_000),
+  /** The shopper's explored negotiation goal, when it differs from the quote. */
+  target: z.number().int().min(1).max(5_000_000).optional(),
 });
 
 const MOCK_BRIEF = [
@@ -45,11 +47,19 @@ const jsonError = (status: number, reason: string, message: string): Response =>
   Response.json({ reason, message }, { status });
 
 /** Deterministic chunked stream so E2E can assert progressive rendering. */
-function mockStream(): Response {
+function mockStream(target?: number): Response {
   const encoder = new TextEncoder();
+  // Echo the negotiation target so E2E can assert it threaded through.
+  const chunks =
+    target === undefined
+      ? MOCK_BRIEF
+      : [
+          ...MOCK_BRIEF,
+          `\n\n**Your target**\nThis mock brief is oriented toward negotiating to $${target.toLocaleString("en-US")}.`,
+        ];
   const body = new ReadableStream<Uint8Array>({
     async start(controller) {
-      for (const chunk of MOCK_BRIEF) {
+      for (const chunk of chunks) {
         controller.enqueue(encoder.encode(chunk));
         await new Promise((resolve) => setTimeout(resolve, 40));
       }
@@ -68,13 +78,13 @@ export async function POST(request: Request): Promise<Response> {
   } catch {
     return jsonError(400, "bad-request", "Send { make, year, model, quote }.");
   }
-  const { make, year, model, quote } = parsedBody;
+  const { make, year, model, quote, target } = parsedBody;
 
   // Rate limits apply in every mode so the 429 path is testable in CI.
   const verdict = getAiGuard().check(clientIp(request));
   if (!verdict.ok) return jsonError(429, verdict.reason, verdict.message);
 
-  if (process.env.MOCK_AI === "1") return mockStream();
+  if (process.env.MOCK_AI === "1") return mockStream(target);
 
   if (!process.env.ANTHROPIC_API_KEY) {
     return jsonError(
@@ -84,14 +94,14 @@ export async function POST(request: Request): Promise<Response> {
     );
   }
 
-  const cacheKey = briefCacheKey(make, year, model, quote);
+  const cacheKey = briefCacheKey(make, year, model, quote, target);
   const cached = getBriefCache().get(cacheKey);
   if (cached !== undefined) return textResponse(cached, "cache");
 
   // Recompute the context server-side — the client's numbers are never used.
   let facts: DealFacts;
   try {
-    facts = await loadDealFacts({ make, year, model, quote });
+    facts = await loadDealFacts({ make, year, model, quote, target });
   } catch {
     return jsonError(502, "context-unavailable", "Couldn't compute the pricing context for this vehicle.");
   }
