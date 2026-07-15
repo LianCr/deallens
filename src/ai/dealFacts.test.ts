@@ -83,6 +83,23 @@ describe("buildDealFacts", () => {
     expect(facts.marketEvents).toHaveLength(8);
   });
 
+  it("carries the shopper's negotiation target as exactly one extra FACTS line", () => {
+    const withTarget = buildDealFacts({ ...baseInput, target: 23950.4 });
+    expect(withTarget.targetPriceDollars).toBe(23950);
+
+    const without = buildDealFacts(baseInput);
+    expect("targetPriceDollars" in without).toBe(false);
+    expect(factsBlock(withTarget).split("\n")).toHaveLength(
+      factsBlock(without).split("\n").length + 1,
+    );
+  });
+
+  it("treats an explicit null target the same as an absent one", () => {
+    expect("targetPriceDollars" in buildDealFacts({ ...baseInput, target: null })).toBe(
+      false,
+    );
+  });
+
   it("is deterministic: the FACTS block is a stable snapshot", () => {
     expect(factsBlock(buildDealFacts(baseInput))).toMatchSnapshot();
   });

@@ -97,19 +97,31 @@ design notes live in the
 what's new here is the SSR static skeleton upgraded in place on
 hydration — an isomorphic D3 chart with zero layout shift.
 
-## The quote explorer
+## The negotiation explorer
 
-Drag "what if the quote were different?" on the dashboard and the
-verdict, percentile, and delta-from-median recompute at input speed —
-by importing the *same* zero-dependency domain functions the server
-rendered with (`assessDeal`, `percentileRank`), fed the same `samples`
-field the GraphQL gateway exposes. The chart's quote marker follows
-through transform-only DOM mutations (shared layout math in
-[`markerLayout.ts`](src/components/charts/PriceContextChart/markerLayout.ts),
-zero D3 in the island), and the URL tracks the explored quote via
+The dashboard's "what if the quote were different?" slider is a
+decision tool, not a readout. Before you drag, the answer is already
+on the track: it is colored by verdict zone (Great deal ≤ P25, Fair to
+P75, Above market past it), the quartiles are soft snap detents, and
+three counter-offer chips — Aggressive (P25) · Balanced (P40) ·
+Walk-away (median) — each carry one line of statistical grounding
+("1 in 4 comparable listings closed below this"). While exploring, the
+dealer's real quote stays anchored: a dimmed ghost marker holds its
+place on the chart and the hero reframes the delta as money ("You'd
+save $1,850 vs the dealer's quote"). The explored price then flows
+into the actions around it — the AI brief targets it (one extra FACTS
+line, same grounding rules) and the contact form arrives pre-filled
+with the offer.
+
+All of it reruns the *same* zero-dependency domain functions the
+server rendered with (`assessDeal`, `percentileRank`,
+`percentileValue`), fed the same `samples` field the GraphQL gateway
+exposes; the chart marker moves through transform-only DOM mutations
+(zero D3 in the island), and the URL tracks the explored quote via
 debounced `replaceState`, so any link you share server-renders the
-same conclusion. Without JavaScript the slider is a plain GET form the
-server answers — isomorphic JavaScript demonstrated in both directions.
+same conclusion. Without JavaScript the slider is a plain GET form and
+every chip is a real link the server answers — isomorphic JavaScript
+demonstrated in both directions.
 
 ## Data sources & honesty methodology
 
@@ -149,12 +161,17 @@ idea at demo scale, as an extension of the honesty red lines
   as a question, never as instructions. Anything FACTS can't answer
   gets an honest "can't say". Deliberately uncached — the rate guard is
   the spend ceiling.
-- **Voice input** on both NL surfaces: browser-native Web Speech API as
-  progressive enhancement — live interim transcription, a transcript
-  that stays editable and is never auto-submitted, and a mic that is
-  feature-detected out where the API is missing (Firefox) rather than
-  rendered dead. No second vendor, no second key
-  ([ADR 006](docs/adr/006-voice-input.md)).
+- **Voice input, two tiers** on both NL surfaces
+  ([ADR 006](docs/adr/006-voice-input.md)): the keyless default is the
+  browser's Web Speech API, tuned to survive mid-sentence pauses
+  (continuous mode + a silence endpointer) with a persisted language
+  toggle (Auto/EN/中文). With an optional `STT_API_KEY`, dictation
+  upgrades to the ChatGPT shape — record with a live level meter, then
+  one accurate Whisper-family transcript — behind the same BYOK
+  pattern and shared rate guard; audio is never stored, and Firefox
+  (no Web Speech) gains dictation through this tier. Either way the
+  transcript stays editable and is never auto-submitted, and the mic
+  renders only where some tier can actually work.
 - **Cost guardrails**: per-IP + global daily limits with honest 429
   copy, a response cache bucketed by vehicle + quote (deterministic
   pricing → most traffic is free), `MOCK_AI=1` for zero-cost
@@ -174,8 +191,11 @@ npm run dev        # no API keys — all sources are free public APIs
 ```
 
 AI features are optional: add `ANTHROPIC_API_KEY=…` to `.env.local` to
-enable them locally. Without a key, both AI surfaces degrade to an
-honest explanation and everything else works.
+enable them locally. Without a key, the AI surfaces degrade to an
+honest explanation and everything else works. `STT_API_KEY=…`
+(optional, OpenAI) upgrades voice dictation to a Whisper-family model
+(`STT_MODEL` to override which); without it, dictation uses the
+browser's own speech service where available.
 
 | Command | What it does |
 | ------- | ------------ |
@@ -184,31 +204,11 @@ honest explanation and everything else works.
 | `npm run lint` / `npm run typecheck` | ESLint / strict TypeScript |
 | `npx lhci autorun` | Lighthouse budget gate, same as CI |
 
-## JD mapping
-
-Built as a working answer to the Edmunds Mid-Level Software Engineer
-posting, line by line:
-
-| The posting says | Where it is in this repo |
-| ---------------- | ------------------------ |
-| "revamping the way we present pricing" | The whole product: verdict + distribution + history timeline — pricing as context, not a number |
-| "optimizing the performance of those pages" | Lighthouse CI budget gates (100/100/100/100 ×3 pages), 48–74 KB first-load JS, visibility-deferred chart hydration |
-| "modern Javascript best practices and client-side application design" | RSC/SSR architecture, URL-as-state, server actions with progressive enhancement, React×D3 division of labor, feature-detected voice dictation ([ADR 006](docs/adr/006-voice-input.md)), ADRs |
-| "building, unit testing, documenting, and refactoring client-side applications" | 100%-covered pure-function domain layer; per-component READMEs; the timeline is a documented refactor-port of production code |
-| "testing strategies … cross-browser compatibility" | Four-layer pyramid: unit → component → contract-vs-fixtures → E2E in chromium/firefox/webkit + no-JS |
-| "isomorphic Javascript (plus)" | Every conclusion server-rendered; usable with JS disabled (CI-enforced); isomorphic D3 skeletons; the quote explorer reruns the server's verdict math client-side from the same imported domain functions |
-| "designing APIs using GraphQL (plus)" | The gateway schema: honesty tags in the type system, nullable-by-design percentiles, classified error extensions ([ADR 003](docs/adr/003-graphql-gateway.md)) |
-| "Node.js (plus)" | graphql-yoga gateway aggregating three upstreams, DataLoader, tiered caching |
-| "cloud platform (plus)" | Vercel deployment + a concrete AWS Lambda/CloudFront migration path ([ADR 004](docs/adr/004-aws-deploy.md)) |
-| "streamline the way customers reach out to dealers" | The contact page: a lead form that submits without JavaScript, validates at field level, never shifts layout, and scores 100×4 |
-| "see projects through to completion" | This repo: CI green, deployed, plus a prior product in production ([smart-money-decoder](https://github.com/LianCr/smart-money-decoder)) |
-| Edmunds' own GenAI direction (ChatGPT plugin; Databricks data-centric blueprint) | "AI narrates, math decides": a grounded deal brief, re-grounded multi-turn Q&A, and catalog-verified NL search with voice — LLM features that inherit the honesty red lines instead of breaking them ([ADR 005](docs/adr/005-ai-native.md)) |
-
 ## Screenshots
 
 | | |
 | --- | --- |
 | ![Landing with NL finder](docs/screenshots/m7-landing.png) | ![AI deal brief, streamed and grounded](docs/screenshots/m6-brief-stream.png) |
-| ![Quote explorer: live what-if verdict](docs/screenshots/m9-quote-explorer.png) | ![Ask about this deal, grounded Q&A](docs/screenshots/m10-ask-thread.png) |
-| ![Voice dictation, listening](docs/screenshots/m11-voice-listening.png) | ![NL finder results](docs/screenshots/m6-finder.png) |
+| ![Negotiation explorer: zones, chips, anchored ghost quote](docs/screenshots/m12-negotiation-explorer.png) | ![Ask about this deal, grounded Q&A](docs/screenshots/m10-ask-thread.png) |
+| ![Voice dictation recording with level meter](docs/screenshots/m13-voice-recording.png) | ![NL finder results](docs/screenshots/m6-finder.png) |
 | ![Dashboard, dark](docs/screenshots/m7-deal-dark.png) | ![Timeline pinned](docs/screenshots/m4-timeline-pinned.png) |

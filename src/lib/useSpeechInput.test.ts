@@ -31,7 +31,7 @@ describe("useSpeechInput", () => {
     expect(result.current.state).toEqual({ status: "unsupported" });
   });
 
-  it("starts listening with interim results on and continuous off", () => {
+  it("starts listening with interim results on and continuous on", () => {
     const { hook } = setup(fakeCtor);
     expect(hook.result.current.state).toEqual({ status: "idle" });
 
@@ -41,7 +41,9 @@ describe("useSpeechInput", () => {
     const recognizer = FakeRecognizer.last();
     expect(recognizer.started).toBe(true);
     expect(recognizer.interimResults).toBe(true);
-    expect(recognizer.continuous).toBe(false);
+    // Continuous + our own silence endpointer: mid-sentence pauses no
+    // longer cut the dictation off.
+    expect(recognizer.continuous).toBe(true);
     expect(recognizer.lang).not.toBe("");
 
     // A second start while listening must not spawn a second recognizer.
@@ -49,7 +51,7 @@ describe("useSpeechInput", () => {
     expect(FakeRecognizer.instances).toHaveLength(1);
   });
 
-  it("streams interim text, then delivers the final text and returns to idle", () => {
+  it("streams interim text, then settles the final text when the session ends", () => {
     const { hook, onInterim, onFinal } = setup(fakeCtor);
     act(() => hook.result.current.start());
     const recognizer = FakeRecognizer.last();
@@ -61,12 +63,47 @@ describe("useSpeechInput", () => {
     expect(onFinal).not.toHaveBeenCalled();
     expect(hook.result.current.state).toEqual({ status: "listening" });
 
+    // A settled segment mid-session still streams as interim — the
+    // dictation is one session, settled once, at the end.
     act(() => recognizer.emitResult(" reliable family SUV under $30k ", true));
+    expect(onFinal).not.toHaveBeenCalled();
+    expect(onInterim).toHaveBeenLastCalledWith("reliable family SUV under $30k");
+
+    act(() => recognizer.end());
     expect(onFinal).toHaveBeenCalledTimes(1);
     expect(onFinal).toHaveBeenCalledWith("reliable family SUV under $30k");
+    expect(hook.result.current.state).toEqual({ status: "idle" });
+  });
 
-    // continuous: false — the recognizer ends itself after the utterance.
-    act(() => recognizer.end());
+  it("settles on its own after a silent pause (the endpointer)", () => {
+    vi.useFakeTimers();
+    try {
+      const { hook, onFinal } = setup(fakeCtor);
+      act(() => hook.result.current.start());
+      const recognizer = FakeRecognizer.last();
+
+      // Nothing said yet: the endpointer must NOT be armed — the user
+      // may click the mic and think first.
+      act(() => vi.advanceTimersByTime(5_000));
+      expect(hook.result.current.state).toEqual({ status: "listening" });
+
+      act(() => recognizer.emitResult("is december a better month", true));
+      act(() => vi.advanceTimersByTime(1_700));
+      expect(onFinal).toHaveBeenCalledWith("is december a better month");
+      expect(hook.result.current.state).toEqual({ status: "idle" });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("stop() settles immediately with what was heard", () => {
+    const { hook, onFinal } = setup(fakeCtor);
+    act(() => hook.result.current.start());
+    const recognizer = FakeRecognizer.last();
+
+    act(() => recognizer.emitResult("under thirty thousand", true));
+    act(() => hook.result.current.stop());
+    expect(onFinal).toHaveBeenCalledWith("under thirty thousand");
     expect(hook.result.current.state).toEqual({ status: "idle" });
   });
 

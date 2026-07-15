@@ -16,6 +16,8 @@ import styles from "./page.module.css";
 
 interface ContactFormProps {
   vehicleName: string | null;
+  /** An explored price from the deal page's explorer — prefills an offer. */
+  offer?: number | null;
 }
 
 const CLIENT_MESSAGES: Record<string, string> = {
@@ -24,7 +26,16 @@ const CLIENT_MESSAGES: Record<string, string> = {
   phone: "That phone number doesn't look right.",
 };
 
-export function ContactForm({ vehicleName }: ContactFormProps) {
+function defaultMessage(vehicleName: string | null, offer: number | null | undefined): string {
+  if (offer != null) {
+    return `I'd like to offer $${offer.toLocaleString("en-US")} for the ${vehicleName ?? "vehicle"}.`;
+  }
+  return vehicleName
+    ? `Hi — I'm interested in the ${vehicleName}. Is it still available?`
+    : "";
+}
+
+export function ContactForm({ vehicleName, offer }: ContactFormProps) {
   const [state, formAction, isPending] = useActionState(
     submitLead,
     INITIAL_LEAD_STATE,
@@ -156,12 +167,7 @@ export function ContactForm({ vehicleName }: ContactFormProps) {
           name="message"
           rows={4}
           maxLength={1000}
-          defaultValue={
-            state.values.message ||
-            (vehicleName
-              ? `Hi — I'm interested in the ${vehicleName}. Is it still available?`
-              : "")
-          }
+          defaultValue={state.values.message || defaultMessage(vehicleName, offer)}
           className={styles.textarea}
           aria-invalid={state.errors.message ? true : undefined}
         />

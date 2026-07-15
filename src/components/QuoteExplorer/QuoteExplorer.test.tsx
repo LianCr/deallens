@@ -1,6 +1,7 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { quoteMarkerLayout } from "@/components/charts/PriceContextChart/markerLayout";
+import { getDealTarget, setDealTarget } from "@/lib/dealTarget";
 import { QuoteExplorer } from "./QuoteExplorer";
 
 /** 21 evenly spread prices: median 25,000, deterministic percentiles. */
@@ -14,6 +15,10 @@ const baseProps = {
   vehiclePath: "/deal/honda/2022/civic",
   contactHref: "/contact?vehicle=civic",
 };
+
+afterEach(() => {
+  setDealTarget(null);
+});
 
 describe("QuoteExplorer", () => {
   test("renders the server verdict for the dealer's quote", () => {
@@ -63,6 +68,113 @@ describe("QuoteExplorer", () => {
       "Not enough data to say",
     );
     expect(screen.queryByTestId("quote-explorer")).not.toBeInTheDocument();
+    // Zones and chips honestly disappear with it — no fabricated market.
+    expect(screen.queryByTestId("counter-offers")).not.toBeInTheDocument();
+  });
+
+  test("colors the track by verdict zone and marks the quartile detents", () => {
+    render(<QuoteExplorer {...baseProps} />);
+    const slider = screen.getByLabelText(/drag to explore/i);
+    // Hard-stop gradient with the P25/P75 stops, as a track custom prop.
+    expect(slider.style.getPropertyValue("--zone-track")).toContain("linear-gradient");
+    const form = screen.getByTestId("quote-explorer");
+    expect(within(form).getByText("P25")).toBeInTheDocument();
+    expect(within(form).getByText("median")).toBeInTheDocument();
+    expect(within(form).getByText("P75")).toBeInTheDocument();
+  });
+
+  test("soft-snaps a drag that lands near a detent", () => {
+    render(<QuoteExplorer {...baseProps} />);
+    const slider = screen.getByLabelText(/drag to explore/i);
+    // 22,400 is within 1.5% of the span of the P25 detent (22,500).
+    fireEvent.change(slider, { target: { value: "22400" } });
+    expect(slider).toHaveValue("22500");
+    expect(screen.getByTestId("verdict-hero")).toHaveTextContent("$22,500");
+    // 22,300 is outside the snap radius and stays put.
+    fireEvent.change(slider, { target: { value: "22300" } });
+    expect(slider).toHaveValue("22300");
+  });
+
+  describe("counter-offer chips", () => {
+    test("render as real links with values and grounding lines", () => {
+      render(<QuoteExplorer {...baseProps} />);
+      const chips = screen.getByTestId("counter-offers");
+
+      const aggressive = screen.getByTestId("chip-aggressive");
+      expect(aggressive).toHaveAttribute("href", "/deal/honda/2022/civic?quote=22450");
+      expect(aggressive).toHaveTextContent("Aggressive $22,450");
+      expect(aggressive).toHaveTextContent("1 in 4 comparable listings closed below this");
+
+      expect(screen.getByTestId("chip-balanced")).toHaveAttribute(
+        "href",
+        "/deal/honda/2022/civic?quote=23950",
+      );
+      expect(screen.getByTestId("chip-walkaway")).toHaveAttribute(
+        "href",
+        "/deal/honda/2022/civic?quote=25000",
+      );
+      expect(within(chips).getAllByRole("link")).toHaveLength(3);
+    });
+
+    test("clicking a chip updates the verdict and slider without navigating", () => {
+      const replaceState = vi.spyOn(window.history, "replaceState");
+      render(<QuoteExplorer {...baseProps} />);
+
+      // fireEvent returns false when the handler prevented the default —
+      // i.e. the link did not navigate.
+      const navigated = fireEvent.click(screen.getByTestId("chip-aggressive"));
+      expect(navigated).toBe(false);
+
+      expect(screen.getByTestId("verdict-hero")).toHaveTextContent("Great deal");
+      expect(screen.getByLabelText(/drag to explore/i)).toHaveValue("22450");
+      // The URL flushes immediately (no debounce on a deliberate pick)…
+      expect(String(replaceState.mock.calls.at(-1)![2])).toContain("quote=22450");
+      // …and the target store publishes right away too.
+      expect(getDealTarget()).toBe(22_450);
+    });
+  });
+
+  test("keeps the dealer's quote anchored while exploring", () => {
+    render(
+      <QuoteExplorer {...baseProps}>
+        <svg>
+          <g data-quote-origin data-testid="origin" opacity="0" />
+          <g data-quote-marker>
+            <text data-quote-label />
+          </g>
+        </svg>
+      </QuoteExplorer>,
+    );
+    const slider = screen.getByLabelText(/drag to explore/i);
+
+    fireEvent.change(slider, { target: { value: "24000" } });
+    // The ghost origin marker fades in (opacity only, zero layout shift)…
+    expect(screen.getByTestId("origin")).toHaveAttribute("opacity", "0.4");
+    // …and the hero frames the difference against the dealer's quote.
+    expect(screen.getByTestId("savings-line")).toHaveTextContent(
+      "You'd save $500 vs the dealer's quote.",
+    );
+
+    fireEvent.change(slider, { target: { value: "25500" } });
+    expect(screen.getByTestId("savings-line")).toHaveTextContent(
+      "That's $1,000 more than the dealer asked.",
+    );
+
+    // Back at the dealer's quote the anchor dissolves.
+    fireEvent.change(slider, { target: { value: "24500" } });
+    expect(screen.getByTestId("origin")).toHaveAttribute("opacity", "0");
+    expect(screen.getByTestId("savings-line")).toHaveTextContent("");
+  });
+
+  test("the contact link carries the explored price as an offer", () => {
+    render(<QuoteExplorer {...baseProps} />);
+    const link = screen.getByRole("link", { name: /contact the dealer/i });
+    expect(link).toHaveAttribute("href", "/contact?vehicle=civic");
+
+    fireEvent.change(screen.getByLabelText(/drag to explore/i), {
+      target: { value: "24000" },
+    });
+    expect(link).toHaveAttribute("href", "/contact?vehicle=civic&offer=24000");
   });
 
   describe("URL sync", () => {
@@ -85,6 +197,33 @@ describe("QuoteExplorer", () => {
       vi.advanceTimersByTime(250);
       expect(replaceState).toHaveBeenCalledTimes(1);
       expect(String(replaceState.mock.calls[0]![2])).toContain("quote=20000");
+    });
+
+    test("publishes the explored quote to the deal-target store, debounced", () => {
+      render(<QuoteExplorer {...baseProps} />);
+      const slider = screen.getByLabelText(/drag to explore/i);
+
+      fireEvent.change(slider, { target: { value: "21000" } });
+      expect(getDealTarget()).toBeNull();
+      vi.advanceTimersByTime(250);
+      expect(getDealTarget()).toBe(21_000);
+
+      // Back at the dealer's quote there is no target — actions aim at
+      // the real quote again.
+      fireEvent.change(slider, { target: { value: "24500" } });
+      vi.advanceTimersByTime(250);
+      expect(getDealTarget()).toBeNull();
+    });
+
+    test("withdraws the target when the explorer unmounts", () => {
+      const { unmount } = render(<QuoteExplorer {...baseProps} />);
+      fireEvent.change(screen.getByLabelText(/drag to explore/i), {
+        target: { value: "21000" },
+      });
+      vi.advanceTimersByTime(250);
+      expect(getDealTarget()).toBe(21_000);
+      unmount();
+      expect(getDealTarget()).toBeNull();
     });
   });
 

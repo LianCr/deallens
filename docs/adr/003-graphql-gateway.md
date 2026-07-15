@@ -42,8 +42,8 @@ Design choices that matter:
 - Adding a real pricing source (e.g. Marketcheck) is an adapter behind
   the same `PriceContext` resolver: implement the source client, flip
   `dataSource` to `REAL`, delete nothing.
-- The schema is the contract the README documents and the interview
-  demo walks through; GraphiQL makes it explorable at `/api/graphql`.
+- The schema is the contract the README documents and the live demo
+  walks through; GraphiQL makes it explorable at `/api/graphql`.
 - Cost: a gateway is more machinery than three fetch calls in page
   code. The typed honesty tags, error classification, and cache
   placement are what the machinery buys.

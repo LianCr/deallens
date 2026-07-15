@@ -25,6 +25,24 @@ describe("PriceContextChart", () => {
     expect(svg).toHaveAccessibleName(/median of \$23,000/i);
   });
 
+  test("ships an invisible origin ghost marker for the explorer to reveal", () => {
+    const { container } = render(
+      <PriceContextChart
+        buckets={buckets}
+        quote={21500}
+        p25={22000}
+        median={23000}
+        p75={24000}
+      />,
+    );
+    const ghost = container.querySelector("[data-quote-origin]");
+    expect(ghost).not.toBeNull();
+    // Hidden by default: it only appears (opacity mutation, zero layout
+    // shift) once the QuoteExplorer island explores a different quote.
+    expect(ghost).toHaveAttribute("opacity", "0");
+    expect(ghost).toHaveAttribute("aria-hidden", "true");
+  });
+
   test("honest empty state when the market is too thin", () => {
     render(
       <PriceContextChart buckets={[]} quote={21500} p25={null} median={null} p75={null} />,

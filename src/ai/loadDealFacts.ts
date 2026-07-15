@@ -26,6 +26,8 @@ export interface DealIdentifiers {
   year: number;
   model: string;
   quote: number;
+  /** The shopper's explored negotiation goal — optional, brief-only. */
+  target?: number;
 }
 
 interface PriceContextData {
@@ -46,6 +48,7 @@ export async function loadDealFacts({
   year,
   model,
   quote,
+  target,
 }: DealIdentifiers): Promise<DealFacts> {
   // Fuel economy is a best-effort enrichment: when fueleconomy.gov can't
   // match the vehicle, the facts simply omit fuel (honest degradation).
@@ -85,6 +88,7 @@ export async function loadDealFacts({
     history: priceContext.history,
     events: priceContext.events,
     dataSource: priceContext.dataSource,
+    target: target ?? null,
     fuel:
       fuelEconomy && fuelCost !== null
         ? {

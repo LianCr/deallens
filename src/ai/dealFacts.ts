@@ -30,6 +30,8 @@ export interface DealFactsInput {
   history: PricePoint[];
   events: MarketEvent[];
   dataSource: DataSourceTag;
+  /** The shopper's explored negotiation goal; null/absent when not set. */
+  target?: number | null;
   fuel: FuelFactsInput | null;
 }
 
@@ -59,6 +61,12 @@ export interface DealFacts {
   p75Dollars: number | null;
   /** quote − median; negative means below the market median. */
   deltaFromMedianDollars: number | null;
+  /**
+   * The shopper's negotiation goal — the price they explored to and
+   * chose to aim at. Present only when set, so the FACTS block gains
+   * exactly one line and older snapshots stay byte-identical.
+   */
+  targetPriceDollars?: number;
   trend24Months: TrendFacts | null;
   marketEvents: Array<{ month: string; title: string; kind: MarketEvent["kind"] }>;
   annualFuel: {
@@ -112,6 +120,7 @@ export function buildDealFacts(input: DealFactsInput): DealFacts {
     p75Dollars: input.p75 === null ? null : Math.round(input.p75),
     deltaFromMedianDollars:
       input.median === null ? null : Math.round(input.quote - input.median),
+    ...(input.target != null ? { targetPriceDollars: Math.round(input.target) } : {}),
     trend24Months: insufficientData ? null : buildTrend(input.history),
     marketEvents: input.events
       .slice(0, MAX_EVENTS)

@@ -2,37 +2,52 @@
 
 /**
  * QuoteExplorer — the hero verdict plus a draggable "what if the quote
- * were different?" slider.
+ * were different?" slider, upgraded from a readout into a negotiation
+ * decision tool: the track is colored by verdict zone, the quartiles
+ * are soft snap detents, three counter-offer chips give the drag a
+ * destination, and the explored price flows into the actions around it
+ * (the AI brief targets it, the contact link carries it as an offer).
  *
  * The isomorphic-JavaScript proof, stated in code: the verdict the
  * server rendered came from `assessDeal` in the pure domain layer, and
  * dragging the slider reruns the *same imported function* on the same
- * market samples in the browser. No client-side approximation of the
- * server's math — the server's math, moved to the client.
+ * market samples in the browser. The zones and chips reuse
+ * `percentileValue`/`percentileRank` the same way (see explorerMath.ts).
  *
  * Progressive enhancement, both directions:
  *  - Without JavaScript this component still server-renders the full
- *    hero, and the slider is a plain GET form — submit it and the
- *    server recomputes the verdict for the new quote.
- *  - With JavaScript the verdict, percentile, and the chart's quote
- *    marker (transform-only, via the data hooks ChartSvg exposes)
- *    update live, and the URL keeps tracking the explored quote via
- *    replaceState so the link stays shareable.
+ *    hero, the slider is a plain GET form, and each chip is a real
+ *    link — the server recomputes the verdict either way.
+ *  - With JavaScript the verdict, percentile, chart markers, URL
+ *    (replaceState, debounced), and the shared deal target update live.
  */
 import Link from "next/link";
 import {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type FormEvent,
+  type MouseEvent,
   type ReactNode,
 } from "react";
 import type { Verdict } from "@/domain/types";
 import { assessDeal, MIN_SAMPLE_SIZE } from "@/domain/verdict";
+import { percentileValue } from "@/domain/percentile";
+import { setDealTarget } from "@/lib/dealTarget";
 import {
   formatDollars,
   quoteMarkerLayout,
 } from "@/components/charts/PriceContextChart/markerLayout";
+import {
+  ceilToStep,
+  counterOffers,
+  floorToStep,
+  QUOTE_STEP,
+  snapDetents,
+  snapToDetent,
+  zoneStops,
+} from "./explorerMath";
 import styles from "./QuoteExplorer.module.css";
 
 const VERDICT_COPY: Record<Verdict, { headline: string; tone: string }> = {
@@ -73,13 +88,15 @@ function verdictDetail(
   return `${deltaText} of comparable listings${pctText}.`;
 }
 
-/** Slider granularity — nobody haggles in sub-$50 steps. */
-const QUOTE_STEP = 50;
-
-const floorToStep = (value: number): number =>
-  Math.max(QUOTE_STEP, Math.floor(value / QUOTE_STEP) * QUOTE_STEP);
-const ceilToStep = (value: number): number =>
-  Math.ceil(value / QUOTE_STEP) * QUOTE_STEP;
+/** Anchored comparison: the dealer's quote never disappears while exploring. */
+function savingsLine(quote: number, initialQuote: number): string {
+  const delta = quote - initialQuote;
+  if (delta === 0) return "";
+  const abs = Math.abs(delta).toLocaleString("en-US");
+  return delta < 0
+    ? `You'd save $${abs} vs the dealer's quote.`
+    : `That's $${abs} more than the dealer asked.`;
+}
 
 export interface QuoteExplorerProps {
   /** Raw market prices — the same sample the server's verdict used. */
@@ -122,20 +139,55 @@ export function QuoteExplorer({
   const sliderMin = floorToStep(sampleLo - pad);
   const sliderMax = ceilToStep(sampleHi + pad);
 
-  // Keep the shared URL honest about what's on screen. Debounced so a
-  // drag is one history entry's worth of churn, not hundreds.
+  // Verdict zones, snap detents, and counter-offer chips — all pure
+  // functions of the same samples the verdict uses, all deterministic,
+  // so the server-rendered island and the hydrated island agree. When
+  // the market is too thin (`explorable` false) none of this renders:
+  // the honest empty state owns the hero instead.
+  const detents = explorable ? snapDetents(samples) : null;
+  const offers = explorable ? counterOffers(samples) : null;
+  const p25 = explorable ? percentileValue(samples, 25) : null;
+  const p75 = explorable ? percentileValue(samples, 75) : null;
+  const stops =
+    p25 !== null && p75 !== null ? zoneStops(p25, p75, sliderMin, sliderMax) : null;
+  const trackStyle = stops
+    ? ({
+        "--zone-track": `linear-gradient(to right, var(--zone-great) 0% ${stops.greatEndPct}%, var(--zone-fair) ${stops.greatEndPct}% ${stops.fairEndPct}%, var(--zone-above) ${stops.fairEndPct}% 100%)`,
+      } as CSSProperties)
+    : undefined;
+
+  const detentTicks = detents
+    ? ([
+        { label: "P25", value: detents.p25 },
+        { label: "median", value: detents.median },
+        { label: "P75", value: detents.p75 },
+      ] as const)
+    : null;
+  const span = sliderMax - sliderMin;
+
+  // Keep the shared URL honest about what's on screen, and publish the
+  // explored price to the deal-target store so the actions below (the
+  // AI brief) aim at it. Debounced so a drag is one entry's worth of
+  // churn, not hundreds.
   useEffect(() => {
     if (!skippedFirstSync.current) {
       skippedFirstSync.current = true;
       return;
     }
-    const timer = setTimeout(() => syncUrl(quote), 250);
+    const timer = setTimeout(() => {
+      syncUrl(quote);
+      setDealTarget(quote === initialQuote ? null : quote);
+    }, 250);
     return () => clearTimeout(timer);
-  }, [quote]);
+  }, [quote, initialQuote]);
+
+  // Leaving the page withdraws the target — it belongs to this deal only.
+  useEffect(() => () => setDealTarget(null), []);
 
   // Move the server-rendered chart's quote marker: transform and text
   // only, through the data hooks ChartSvg exposes — the distribution
-  // paths are never redrawn.
+  // paths are never redrawn. The dimmed origin marker fades in whenever
+  // the explored quote leaves the dealer's, so reality stays anchored.
   useEffect(() => {
     const host = chartHostRef.current;
     if (!host || !domain) return;
@@ -153,6 +205,9 @@ export function QuoteExplorer({
     host
       .querySelector("[data-axis-hi]")
       ?.setAttribute("visibility", to.showHiLabel ? "visible" : "hidden");
+    host
+      .querySelector("[data-quote-origin]")
+      ?.setAttribute("opacity", quote === initialQuote ? "0" : "0.4");
   }, [quote, initialQuote, domain]);
 
   // With JavaScript the form never navigates — the verdict is already
@@ -162,6 +217,20 @@ export function QuoteExplorer({
     syncUrl(quote);
   };
 
+  // Chips are real links (the no-JS path); with JavaScript a click is
+  // an instant local jump — verdict, URL, and target, no navigation.
+  const pickOffer = (event: MouseEvent<HTMLAnchorElement>, value: number) => {
+    event.preventDefault();
+    setQuote(value);
+    syncUrl(value);
+    setDealTarget(value === initialQuote ? null : value);
+  };
+
+  const exploring = quote !== initialQuote;
+  const contactUrl = exploring
+    ? `${contactHref}${contactHref.includes("?") ? "&" : "?"}offer=${quote}`
+    : contactHref;
+
   return (
     <>
       <section
@@ -170,12 +239,17 @@ export function QuoteExplorer({
         data-testid="verdict-hero"
       >
         <p className={styles.heroQuote}>
-          {quote === initialQuote ? "Dealer quote: " : "Exploring: "}
+          {exploring ? "Exploring: " : "Dealer quote: "}
           <strong>${quote.toLocaleString("en-US")}</strong>
         </p>
         <h2 className={styles.heroVerdict}>{copy.headline}</h2>
         <p className={styles.heroDetail} aria-live="polite">
           {verdictDetail(quote, verdict, percentile, median)}
+        </p>
+        {/* Fixed-height slot: the savings line appears and disappears
+            while dragging without moving anything below it. */}
+        <p className={styles.savingsLine} data-testid="savings-line" aria-live="polite">
+          {savingsLine(quote, initialQuote)}
         </p>
 
         {explorable && (
@@ -193,18 +267,48 @@ export function QuoteExplorer({
               <span className={styles.explorerBound} aria-hidden>
                 {formatDollars(sliderMin)}
               </span>
-              <input
-                id="quote-explorer-input"
-                name="quote"
-                type="range"
-                min={sliderMin}
-                max={sliderMax}
-                step={QUOTE_STEP}
-                value={quote}
-                aria-valuetext={formatDollars(quote)}
-                onChange={(event) => setQuote(Number(event.target.value))}
-                className={styles.explorerRange}
-              />
+              <div className={styles.trackWrap}>
+                <input
+                  id="quote-explorer-input"
+                  name="quote"
+                  type="range"
+                  min={sliderMin}
+                  max={sliderMax}
+                  step={QUOTE_STEP}
+                  value={quote}
+                  aria-valuetext={formatDollars(quote)}
+                  onChange={(event) => {
+                    const raw = Number(event.target.value);
+                    setQuote(
+                      detents
+                        ? snapToDetent(
+                            raw,
+                            [detents.p25, detents.median, detents.p75],
+                            sliderMin,
+                            sliderMax,
+                          )
+                        : raw,
+                    );
+                  }}
+                  className={styles.explorerRange}
+                  style={trackStyle}
+                />
+                {detentTicks && span > 0 && (
+                  <div className={styles.detents} aria-hidden="true">
+                    {detentTicks.map((tick) => (
+                      <span
+                        key={tick.label}
+                        className={styles.detent}
+                        style={{ left: `${((tick.value - sliderMin) / span) * 100}%` }}
+                        title={formatDollars(tick.value)}
+                      >
+                        <span className={styles.detentTick} />
+                        {tick.label}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
               <span className={styles.explorerBound} aria-hidden>
                 {formatDollars(sliderMax)}
               </span>
@@ -212,11 +316,31 @@ export function QuoteExplorer({
                 Check this quote
               </button>
             </div>
+
+            {offers && (
+              <div className={styles.chips} data-testid="counter-offers">
+                {offers.map((offer) => (
+                  <a
+                    key={offer.id}
+                    href={`${vehiclePath}?quote=${offer.value}`}
+                    className={styles.chip}
+                    data-testid={`chip-${offer.id}`}
+                    aria-current={quote === offer.value ? "true" : undefined}
+                    onClick={(event) => pickOffer(event, offer.value)}
+                  >
+                    <span className={styles.chipLabel}>
+                      {offer.label} {formatDollars(offer.value)}
+                    </span>
+                    <span className={styles.chipGrounding}>{offer.grounding}</span>
+                  </a>
+                ))}
+              </div>
+            )}
           </form>
         )}
 
         <p className={styles.heroCta}>
-          <Link href={contactHref} className={styles.contactLink}>
+          <Link href={contactUrl} className={styles.contactLink}>
             Contact the dealer →
           </Link>
         </p>

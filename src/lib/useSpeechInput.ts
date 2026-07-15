@@ -50,6 +50,9 @@ export interface SpeechRecognizerLike {
   onend: (() => void) | null;
   start(): void;
   abort(): void;
+  /** Graceful settle: flush pending finals, then end. Optional because
+      older fakes/browsers may lack it; we fall back to abort + flush. */
+  stop?(): void;
 }
 
 export type SpeechRecognitionCtor = new () => SpeechRecognizerLike;
@@ -97,9 +100,19 @@ export interface SpeechInput {
   state: SpeechInputState;
   /** Begin a dictation. No-op while unsupported or already listening. */
   start: () => void;
+  /** Settle the dictation: keep what was heard and stop listening. */
+  stop: () => void;
   /** Abort the current dictation and discard its audio. */
   cancel: () => void;
 }
+
+/**
+ * How long the user can pause mid-sentence before we settle the
+ * dictation. With `continuous: true` the browser no longer cuts off at
+ * the first breath — this timer is the endpointer instead, and it only
+ * arms after the first result so "click mic, then think" still works.
+ */
+export const SILENCE_SETTLE_MS = 1600;
 
 /** The window's constructor never changes after load; no subscription. */
 const subscribeNever = () => () => {};
@@ -128,6 +141,9 @@ export function useSpeechInput({
   );
   const recognizerRef = useRef<SpeechRecognizerLike | null>(null);
   const erroredRef = useRef(false);
+  /** Final segments settled so far in this dictation session. */
+  const finalsRef = useRef("");
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Keep callback identity out of the state machine: callers may pass
   // fresh closures every render without restarting the recognizer.
@@ -138,16 +154,45 @@ export function useSpeechInput({
     onFinalRef.current = onFinal;
   });
 
+  const clearSilenceTimer = useCallback(() => {
+    if (silenceTimerRef.current !== null) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+  }, []);
+
   const cancel = useCallback(() => {
     const recognizer = recognizerRef.current;
     if (!recognizer) return;
     recognizerRef.current = null;
+    clearSilenceTimer();
+    finalsRef.current = "";
     // Detach before aborting so the recognizer's own "aborted" error /
     // end events can't race the state we set here.
     detachHandlers(recognizer);
     recognizer.abort();
     setPhase({ status: "idle" });
-  }, []);
+  }, [clearSilenceTimer]);
+
+  const stop = useCallback(() => {
+    const recognizer = recognizerRef.current;
+    if (!recognizer) return;
+    clearSilenceTimer();
+    if (recognizer.stop) {
+      // Graceful path: the recognizer flushes pending finals and then
+      // fires onend, where the session settles.
+      recognizer.stop();
+      return;
+    }
+    // No stop(): settle manually with what we have.
+    recognizerRef.current = null;
+    detachHandlers(recognizer);
+    recognizer.abort();
+    const finals = finalsRef.current.trim();
+    finalsRef.current = "";
+    if (finals) onFinalRef.current(finals);
+    setPhase({ status: "idle" });
+  }, [clearSilenceTimer]);
 
   const start = useCallback(() => {
     // No-op while unsupported or already listening; restarting from an
@@ -157,10 +202,13 @@ export function useSpeechInput({
     const recognizer = new ctor();
     recognizer.lang =
       lang ?? ((typeof navigator !== "undefined" && navigator.language) || "en-US");
-    // ChatGPT-style live transcription + auto-stop on silence.
+    // Live transcription that survives mid-sentence pauses: continuous
+    // mode plus our own silence endpointer (SILENCE_SETTLE_MS), instead
+    // of the browser's cut-off-at-the-first-breath default.
     recognizer.interimResults = true;
-    recognizer.continuous = false;
+    recognizer.continuous = true;
     erroredRef.current = false;
+    finalsRef.current = "";
 
     recognizer.onresult = (event) => {
       let finalText = "";
@@ -170,8 +218,13 @@ export function useSpeechInput({
         if (event.results[i]?.isFinal) finalText += transcript;
         else interimText += transcript;
       }
-      if (finalText) onFinalRef.current(finalText.trim());
-      else onInterimRef.current(interimText);
+      finalsRef.current = finalText;
+      // Everything heard so far — settled segments plus the live tail —
+      // streams to the host as one growing interim string.
+      onInterimRef.current((finalText + interimText).trim());
+      // Endpointing arms only once the user has said something.
+      clearSilenceTimer();
+      silenceTimerRef.current = setTimeout(() => stop(), SILENCE_SETTLE_MS);
     };
 
     recognizer.onerror = (event) => {
@@ -188,6 +241,12 @@ export function useSpeechInput({
 
     recognizer.onend = () => {
       recognizerRef.current = null;
+      clearSilenceTimer();
+      const finals = finalsRef.current.trim();
+      finalsRef.current = "";
+      // The dictation settles once per session, when it ends — not on
+      // every intermediate final segment.
+      if (!erroredRef.current && finals) onFinalRef.current(finals);
       // An error already set its own state; keep it visible until the
       // user retries instead of flashing back to idle.
       if (!erroredRef.current) setPhase({ status: "idle" });
@@ -196,7 +255,7 @@ export function useSpeechInput({
     recognizerRef.current = recognizer;
     recognizer.start();
     setPhase({ status: "listening" });
-  }, [ctor, lang]);
+  }, [ctor, lang, clearSilenceTimer, stop]);
 
   // Unmount: silently drop any in-flight dictation.
   useEffect(
@@ -207,9 +266,10 @@ export function useSpeechInput({
         detachHandlers(recognizer);
         recognizer.abort();
       }
+      if (silenceTimerRef.current !== null) clearTimeout(silenceTimerRef.current);
     },
     [],
   );
 
-  return { state: ctor ? phase : { status: "unsupported" }, start, cancel };
+  return { state: ctor ? phase : { status: "unsupported" }, start, stop, cancel };
 }

@@ -67,6 +67,25 @@
   }
 }
 
+/* Live level meter while recording (tier 2): four bars driven by ref
+   mutations of transform only — no React re-render per audio frame. */
+.bars {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 18px;
+}
+
+.bar {
+  width: 3px;
+  height: 100%;
+  border-radius: 2px;
+  background: currentColor;
+  transform: scaleY(0.15);
+  transform-origin: center;
+  transition: transform 80ms linear;
+}
+
 .status {
   font-size: 0.8125rem;
   color: var(--color-muted);

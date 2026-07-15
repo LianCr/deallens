@@ -130,4 +130,19 @@ describe("briefCacheKey", () => {
       briefCacheKey("Honda", 2023, "Civic", 24500),
     );
   });
+
+  it("separates briefs aimed at a negotiation target from untargeted ones", () => {
+    expect(briefCacheKey("Honda", 2022, "Civic", 24500, 23000)).not.toBe(
+      briefCacheKey("Honda", 2022, "Civic", 24500),
+    );
+  });
+
+  it("buckets near-identical targets together and distinct ones apart", () => {
+    expect(briefCacheKey("Honda", 2022, "Civic", 24500, 23000)).toBe(
+      briefCacheKey("Honda", 2022, "Civic", 24500, 23020),
+    );
+    expect(briefCacheKey("Honda", 2022, "Civic", 24500, 23000)).not.toBe(
+      briefCacheKey("Honda", 2022, "Civic", 24500, 25000),
+    );
+  });
 });
