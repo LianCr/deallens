@@ -58,10 +58,13 @@ const FAKE_SPEECH_INIT = `
  * in MOCK_STT mode — the full client → route → response path is live.
  */
 const FAKE_RECORDER_INIT = `
-  if (!navigator.mediaDevices) {
-    Object.defineProperty(navigator, "mediaDevices", { value: {}, configurable: true });
-  }
-  navigator.mediaDevices.getUserMedia = async () => ({ getTracks: () => [] });
+  // Replace mediaDevices wholesale via defineProperty: WebKit's
+  // getUserMedia is a readonly accessor, so plain assignment silently
+  // no-ops and the test would hang on a real permission prompt.
+  Object.defineProperty(navigator, "mediaDevices", {
+    value: { getUserMedia: async () => ({ getTracks: () => [] }) },
+    configurable: true,
+  });
   Object.defineProperty(window, "SpeechRecognition", { value: undefined, configurable: true });
   Object.defineProperty(window, "webkitSpeechRecognition", { value: undefined, configurable: true });
   class FakeMediaRecorder {
