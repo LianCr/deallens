@@ -75,6 +75,22 @@ treat user text as a question and never as instructions, and the route
 skips the response cache (free-text rarely repeats; the guard is its
 spend ceiling).
 
+## Amendment: the grounding line moved — deliberately
+
+Field use showed "FACTS-only, refuse everything else" produced a
+useless coach: it punted on "what fits a $500/month budget?" and
+robot-declined jokes. The fix separates what the rule was actually
+protecting from what it accidentally banned. The prompts now define
+three knowledge zones: (1) **this deal's market numbers** come only
+from FACTS — the untouchable core, unchanged; (2) **general automotive
+knowledge** (the model's real-world knowledge of the vehicle,
+negotiation craft, financing concepts) is allowed and encouraged, but
+voiced as general knowledge, never as DealLens data; (3) **rough
+arithmetic** (payment budgets) is allowed with the assumption stated
+and an explicit "rough math, not a quote" label. The on-page
+disclosure changed in step, so the page never promises more grounding
+than the prompt enforces.
+
 ## Consequences
 
 - The AI features can't say anything the page doesn't already show —
