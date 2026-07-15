@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useState, type FormEvent } from "react";
+import { MicButton } from "@/components/VoiceInput/MicButton";
+import type { SpeechRecognitionCtor } from "@/lib/useSpeechInput";
 import { AiBadge, ByokCard } from "./DealBrief";
 import styles from "./AskThread.module.css";
 
@@ -12,6 +14,10 @@ import styles from "./AskThread.module.css";
  * text into place. Prior turns are held in state (bounded to MAX_TURNS,
  * oldest dropped) and re-sent as `turns` — the server re-injects the
  * FACTS block on every call, so the client never supplies a number.
+ *
+ * Voice input works exactly as on the NL finder: dictation streams
+ * interim text into the (visually muted) input and the final text is
+ * left editable — never auto-asked.
  */
 
 const MAX_TURNS = 4;
@@ -23,12 +29,8 @@ interface AskThreadProps {
   year: number;
   model: string;
   quote: number;
-  /**
-   * Optional control rendered as a sibling of the question input (its
-   * slot always exists in the DOM) — reserved for a future voice-input
-   * mic button. Not built here; this is only the mount point.
-   */
-  inputAccessory?: ReactNode;
+  /** Test seam for voice input (see useSpeechInput); omit in production. */
+  speechRecognitionCtor?: SpeechRecognitionCtor | null;
 }
 
 interface Turn {
@@ -43,9 +45,17 @@ interface ApiError {
   message: string;
 }
 
-export function AskThread({ make, year, model, quote, inputAccessory }: AskThreadProps) {
+export function AskThread({
+  make,
+  year,
+  model,
+  quote,
+  speechRecognitionCtor,
+}: AskThreadProps) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
+  /** True while the input shows a live, not-yet-final dictation. */
+  const [dictating, setDictating] = useState(false);
   const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
   const [streamText, setStreamText] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
@@ -169,18 +179,36 @@ export function AskThread({ make, year, model, quote, inputAccessory }: AskThrea
           <div className={styles.inputRow}>
             <input
               id="deal-ask-question"
-              className={styles.input}
+              className={
+                dictating ? `${styles.input} ${styles.inputInterim}` : styles.input
+              }
               type="text"
               value={draft}
-              onChange={(event) => setDraft(event.target.value)}
+              onChange={(event) => {
+                setDictating(false);
+                setDraft(event.target.value);
+              }}
               maxLength={MAX_QUESTION_LENGTH}
               placeholder="e.g. Is this the right month to buy?"
               disabled={phase === "streaming"}
               autoComplete="off"
             />
-            {/* Sibling slot for a future mic button (voice-input milestone). */}
+            {/* Feature-detected out where the API is missing — the span
+                collapses via :empty, so nothing shifts either way. */}
             <span className={styles.inputAccessory} data-testid="ask-input-accessory">
-              {inputAccessory}
+              <MicButton
+                recognitionCtor={speechRecognitionCtor}
+                onInterim={(text) => {
+                  setDictating(true);
+                  setDraft(text);
+                }}
+                onFinal={(text) => {
+                  // Editable, never auto-asked: the user reviews what was
+                  // heard and presses Ask themselves.
+                  setDictating(false);
+                  setDraft(text);
+                }}
+              />
             </span>
             <button
               type="submit"

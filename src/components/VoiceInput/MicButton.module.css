@@ -1,0 +1,77 @@
+.wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mic {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.625rem;
+  height: 2.625rem;
+  flex: none;
+  color: var(--color-fg);
+  background: var(--color-bg);
+  border: 1px solid color-mix(in srgb, var(--color-fg) 25%, transparent);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: border-color 120ms ease;
+}
+
+.mic:hover {
+  border-color: color-mix(in srgb, var(--color-fg) 45%, transparent);
+}
+
+.mic:focus-visible {
+  outline: 2px solid var(--color-event-model-year);
+  outline-offset: 1px;
+}
+
+.listening {
+  color: var(--color-bad);
+  border-color: color-mix(in srgb, var(--color-bad) 55%, transparent);
+}
+
+.icon {
+  position: relative;
+  z-index: 1;
+}
+
+/* Pulsing ring while the recognizer is live. */
+.pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 2px solid color-mix(in srgb, var(--color-bad) 60%, transparent);
+  animation: mic-pulse 1.4s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes mic-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.45);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse {
+    animation: none;
+    opacity: 0.9;
+  }
+}
+
+.status {
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+}
+
+.status:empty {
+  display: none;
+}

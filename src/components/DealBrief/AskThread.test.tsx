@@ -1,5 +1,7 @@
-import { describe, expect, it, vi, afterEach } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { FakeRecognizer } from "@/lib/fakeSpeechRecognizer";
+import type { SpeechRecognitionCtor } from "@/lib/useSpeechInput";
 import { AskThread } from "./AskThread";
 
 const props = { make: "honda", year: 2022, model: "civic", quote: 24500 };
@@ -109,13 +111,47 @@ describe("AskThread", () => {
     expect(screen.queryByLabelText("Ask about this deal")).not.toBeInTheDocument();
   });
 
-  it("keeps a sibling slot next to the input for a future mic button", () => {
-    render(<AskThread {...props} inputAccessory={<button type="button">Mic</button>} />);
-    const slot = screen.getByTestId("ask-input-accessory");
-    expect(slot).toContainElement(screen.getByRole("button", { name: "Mic" }));
-    // The slot is a sibling of the input inside the same row.
-    expect(slot.parentElement).toContainElement(
-      screen.getByLabelText("Ask about this deal"),
-    );
+  describe("voice input", () => {
+    const fakeCtor = FakeRecognizer as unknown as SpeechRecognitionCtor;
+
+    beforeEach(() => {
+      FakeRecognizer.reset();
+    });
+
+    it("hides the mic entirely when the browser lacks the Web Speech API", () => {
+      render(<AskThread {...props} speechRecognitionCtor={null} />);
+      expect(screen.queryByTestId("mic-button")).not.toBeInTheDocument();
+      // The mount point still exists (and collapses via :empty).
+      expect(screen.getByTestId("ask-input-accessory")).toBeEmptyDOMElement();
+    });
+
+    it("streams interim text muted, leaves the final text editable, and never auto-asks", async () => {
+      const fetchMock = vi.fn().mockResolvedValue(streamResponse(["Grounded answer."]));
+      vi.stubGlobal("fetch", fetchMock);
+      render(<AskThread {...props} speechRecognitionCtor={fakeCtor} />);
+
+      fireEvent.click(screen.getByTestId("mic-button"));
+      const input = screen.getByLabelText("Ask about this deal");
+
+      // Interim: streams into the input, visually marked as provisional.
+      act(() => FakeRecognizer.last().emitResult("is this the right", false));
+      expect(input).toHaveValue("is this the right");
+      expect(input.className).toContain("inputInterim");
+
+      // Final: settles, muting removed — and crucially, no fetch fired.
+      act(() => FakeRecognizer.last().emitResult("is this the right month to buy?", true));
+      act(() => FakeRecognizer.last().end());
+      expect(input).toHaveValue("is this the right month to buy?");
+      expect(input.className).not.toContain("inputInterim");
+      expect(fetchMock).not.toHaveBeenCalled();
+
+      // The heard text stays editable, and asking is manual.
+      fireEvent.change(input, { target: { value: "is December a better month?" } });
+      fireEvent.click(screen.getByRole("button", { name: "Ask" }));
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+      expect(String(fetchMock.mock.calls[0]![1]!.body)).toContain(
+        "is December a better month?",
+      );
+    });
   });
 });

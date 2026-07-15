@@ -98,7 +98,8 @@
   opacity: 0.6;
 }
 
-/* Reserved mount point for a future mic button — costs nothing empty. */
+/* Mic button mount point — collapses when feature detection leaves it
+   empty, so unsupported browsers pay no layout cost. */
 .inputAccessory {
   display: flex;
   align-items: center;
@@ -106,6 +107,12 @@
 
 .inputAccessory:empty {
   display: none;
+}
+
+/* Live dictation: muted until the recognizer settles on a final text. */
+.inputInterim {
+  color: var(--color-muted);
+  font-style: italic;
 }
 
 .ask {

@@ -1,6 +1,8 @@
-import { describe, expect, it, vi, afterEach } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { NlFinder } from "./NlFinder";
+import { FakeRecognizer } from "@/lib/fakeSpeechRecognizer";
+import type { SpeechRecognitionCtor } from "@/lib/useSpeechInput";
 
 function submitQuery(query: string) {
   fireEvent.change(screen.getByTestId("nl-finder-input"), { target: { value: query } });
@@ -92,5 +94,55 @@ describe("NlFinder", () => {
     render(<NlFinder />);
     submitQuery("ok");
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("NlFinder voice input", () => {
+  const fakeCtor = FakeRecognizer as unknown as SpeechRecognitionCtor;
+
+  beforeEach(() => {
+    FakeRecognizer.reset();
+  });
+
+  it("hides the mic entirely when the browser lacks the Web Speech API", () => {
+    render(<NlFinder speechRecognitionCtor={null} />);
+    expect(screen.queryByTestId("mic-button")).not.toBeInTheDocument();
+  });
+
+  it("streams interim text muted, leaves the final text editable, and never auto-submits", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(Response.json({ candidates: [], dropped: 0 }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<NlFinder speechRecognitionCtor={fakeCtor} />);
+
+    fireEvent.click(screen.getByTestId("mic-button"));
+    const input = screen.getByTestId("nl-finder-input");
+
+    // Interim: streams into the input, visually marked as provisional.
+    act(() => FakeRecognizer.last().emitResult("reliable family", false));
+    expect(input).toHaveValue("reliable family");
+    expect(input.className).toContain("inputInterim");
+
+    // Final: settles, muting removed — and crucially, no fetch fired.
+    act(() => FakeRecognizer.last().emitResult("reliable family SUV under $30k", true));
+    act(() => FakeRecognizer.last().end());
+    expect(input).toHaveValue("reliable family SUV under $30k");
+    expect(input.className).not.toContain("inputInterim");
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    // The heard text stays editable before the user submits it.
+    fireEvent.change(input, { target: { value: "reliable family SUV under $25k" } });
+    expect(input).toHaveValue("reliable family SUV under $25k");
+
+    // Submission is manual, exactly as with typed input.
+    fireEvent.click(screen.getByRole("button", { name: /find candidates/i }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/find",
+      expect.objectContaining({
+        body: JSON.stringify({ query: "reliable family SUV under $25k" }),
+      }),
+    );
   });
 });
