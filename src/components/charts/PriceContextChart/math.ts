@@ -7,18 +7,18 @@ import { scaleLinear, type ScaleLinear } from "d3-scale";
 import { area, curveBasis, line } from "d3-shape";
 import { max } from "d3-array";
 import type { PriceBucket } from "@/domain/types";
+import { DEFAULT_GEOMETRY, type ChartGeometry } from "./markerLayout";
 
-export interface ChartGeometry {
-  width: number;
-  height: number;
-  margin: { top: number; right: number; bottom: number; left: number };
-}
-
-export const DEFAULT_GEOMETRY: ChartGeometry = {
-  width: 720,
-  height: 260,
-  margin: { top: 18, right: 16, bottom: 28, left: 16 },
-};
+// Geometry, marker layout, and dollar formatting live in markerLayout.ts
+// (zero-dep, safe for the QuoteExplorer island); re-exported here so the
+// D3-side modules keep a single import surface.
+export {
+  DEFAULT_GEOMETRY,
+  formatDollars,
+  quoteMarkerLayout,
+  type ChartGeometry,
+  type QuoteMarkerLayout,
+} from "./markerLayout";
 
 export interface DistributionShape {
   x: ScaleLinear<number, number>;
@@ -103,7 +103,3 @@ export function percentileFromBuckets(
   }
   return (below / total) * 100;
 }
-
-/** Format a dollar amount for axis labels and readouts. */
-export const formatDollars = (value: number): string =>
-  `$${Math.round(value).toLocaleString("en-US")}`;

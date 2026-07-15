@@ -12,6 +12,7 @@ import { PriceContextChart } from "@/components/charts/PriceContextChart";
 import { PriceHistoryTimeline } from "@/components/charts/PriceHistoryTimeline";
 import { DemoDataBadge, ProvenanceBadge } from "@/components/DataBadge/DataBadge";
 import { AiBadge, DealBrief } from "@/components/DealBrief/DealBrief";
+import { QuoteExplorer } from "@/components/QuoteExplorer/QuoteExplorer";
 import styles from "./page.module.css";
 
 /**
@@ -31,6 +32,7 @@ interface PriceContext {
   distribution: PriceBucket[];
   history: PricePoint[];
   events: MarketEvent[];
+  samples: number[];
   dataSource: "REAL" | "DEMO";
 }
 
@@ -38,39 +40,6 @@ interface FuelEconomyData {
   combinedMpg: number;
   feModelName: string;
   fuelType: string;
-}
-
-const VERDICT_COPY: Record<Verdict, { headline: string; tone: string }> = {
-  GREAT_DEAL: { headline: "Great deal", tone: "good" },
-  FAIR: { headline: "Fair price", tone: "neutral" },
-  ABOVE_MARKET: { headline: "Above market", tone: "bad" },
-  INSUFFICIENT_DATA: { headline: "Not enough data to say", tone: "neutral" },
-};
-
-const ordinal = (n: number): string => {
-  const rem10 = n % 10;
-  const rem100 = n % 100;
-  if (rem10 === 1 && rem100 !== 11) return `${n}st`;
-  if (rem10 === 2 && rem100 !== 12) return `${n}nd`;
-  if (rem10 === 3 && rem100 !== 13) return `${n}rd`;
-  return `${n}th`;
-};
-
-function verdictDetail(context: PriceContext): string {
-  if (context.verdict === "INSUFFICIENT_DATA" || context.median === null) {
-    return "This market is too thin to judge honestly — and we won't guess.";
-  }
-  const delta = Math.round(context.quote - context.median);
-  const abs = Math.abs(delta).toLocaleString("en-US");
-  const deltaText =
-    delta === 0
-      ? "Right at the median"
-      : `$${abs} ${delta < 0 ? "below" : "above"} the median`;
-  const pctText =
-    context.percentile === null
-      ? ""
-      : `, at the ${ordinal(Math.round(context.percentile))} percentile of this market`;
-  return `${deltaText} of comparable listings${pctText}.`;
 }
 
 /** Year range the pricing gateway accepts; outside it the URL is junk. */
@@ -146,6 +115,7 @@ export default async function DealPage({ params, searchParams }: DealPageProps) 
           distribution { lo hi count }
           history { month price }
           events { month title kind }
+          samples
           dataSource
         }
       }`,
@@ -166,45 +136,47 @@ export default async function DealPage({ params, searchParams }: DealPageProps) 
     ),
   ]);
 
-  const copy = VERDICT_COPY[priceContext.verdict];
   const fuelCost = fuelEconomy
     ? annualFuelCost({ combinedMpg: fuelEconomy.combinedMpg })
     : null;
+
+  const firstBucket = priceContext.distribution[0];
+  const lastBucket = priceContext.distribution.at(-1);
+  const chartDomain =
+    firstBucket && lastBucket ? { lo: firstBucket.lo, hi: lastBucket.hi } : null;
 
   return (
     <main className={styles.main}>
       <Header vehicleName={vehicleName} />
 
-      {/* Hero verdict — server-rendered, readable without JS. */}
-      <section className={styles.hero} data-tone={copy.tone} data-testid="verdict-hero">
-        <p className={styles.heroQuote}>
-          Dealer quote: <strong>${priceContext.quote.toLocaleString("en-US")}</strong>
-        </p>
-        <h2 className={styles.heroVerdict}>{copy.headline}</h2>
-        <p className={styles.heroDetail}>{verdictDetail(priceContext)}</p>
-        <p className={styles.heroCta}>
-          <Link
-            href={`/contact?vehicle=${encodeURIComponent(vehicleName)}`}
-            className={styles.contactLink}
-          >
-            Contact the dealer →
-          </Link>
-        </p>
-      </section>
-
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Where this quote lands in the market</h2>
-          {priceContext.dataSource === "DEMO" && <DemoDataBadge />}
-        </div>
-        <PriceContextChart
-          buckets={priceContext.distribution}
-          quote={priceContext.quote}
-          p25={priceContext.p25}
-          median={priceContext.median}
-          p75={priceContext.p75}
-        />
-      </section>
+      {/* Hero verdict + quote slider. The island server-renders the same
+          hero HTML as ever (readable without JS; the slider degrades to
+          a GET form), then hydrates the verdict math client-side using
+          the identical domain functions the server ran. The chart
+          section rides along as children so its quote marker can follow
+          the slider without redrawing the SVG. */}
+      <QuoteExplorer
+        samples={priceContext.samples}
+        initialQuote={priceContext.quote}
+        median={priceContext.median}
+        domain={chartDomain}
+        vehiclePath={selfPath}
+        contactHref={`/contact?vehicle=${encodeURIComponent(vehicleName)}`}
+      >
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Where this quote lands in the market</h2>
+            {priceContext.dataSource === "DEMO" && <DemoDataBadge />}
+          </div>
+          <PriceContextChart
+            buckets={priceContext.distribution}
+            quote={priceContext.quote}
+            p25={priceContext.p25}
+            median={priceContext.median}
+            p75={priceContext.p75}
+          />
+        </section>
+      </QuoteExplorer>
 
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
