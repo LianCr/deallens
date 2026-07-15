@@ -48,6 +48,7 @@ export default defineConfig({
     // the rate-limit spec probes with its own spoofed IPs.
     env: {
       MOCK_AI: "1",
+      MOCK_STT: "1",
       AI_LIMIT_IP_PER_MINUTE: "30",
       AI_LIMIT_IP_PER_DAY: "1000",
       AI_LIMIT_GLOBAL_PER_DAY: "100000",

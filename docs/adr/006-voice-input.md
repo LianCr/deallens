@@ -1,8 +1,9 @@
-# ADR 006 — Voice input is the browser's job
+# ADR 006 — Voice input is the browser's job (with an optional server tier)
 
 ## Status
 
-Accepted.
+Accepted. Amended: the upgrade path in the consequences below has since
+been exercised — see "Amendment: the two-tier architecture" at the end.
 
 ## Context
 
@@ -72,6 +73,35 @@ the feature always fails back to the keyboard it enhanced.
   is mechanical and mirrors the existing BYOK pattern: MediaRecorder
   capture posted to an STT route that returns 503 without an optional
   vendor key, with this browser path remaining the keyless default.
-  Live interim transcription would need a streaming STT vendor;
-  batch-only transcription would lose the ChatGPT-style liveness that
-  motivated the feature.
+
+## Amendment: the two-tier architecture
+
+Field use surfaced the ceiling quickly: Web Speech quality is whatever
+the browser vendor ships, `continuous: false` cut dictations off at the
+first breath, and accented or non-English speech transcribed poorly. Two
+observations reshaped the feature:
+
+1. **The browser tier was underconfigured, not just underpowered.**
+   `continuous: true` plus our own silence endpointer
+   (`SILENCE_SETTLE_MS`) stops the mid-sentence cut-offs; a dictation
+   now settles once, when the speaker actually stops. A language toggle
+   (Auto / EN / 中文, persisted) fixes the other classic killer — a
+   recognizer locked to the wrong language tag.
+
+2. **ChatGPT's dictation is not live streaming.** It records with level
+   feedback, then produces one accurate transcript. That shape needs no
+   streaming STT vendor — so the "batch-only transcription would lose
+   the liveness" objection above dissolved, and the planned upgrade path
+   was implemented as **tier 2**: MediaRecorder capture (with a Web
+   Audio level meter) posted to `/api/transcribe`, which forwards to a
+   Whisper-family model behind an optional `STT_API_KEY` — exactly the
+   BYOK pattern, one budget shared with the LLM guard, audio never
+   stored, 25-second/1 MB caps.
+
+Tier selection is honest and automatic: the mic prefers the server tier
+when the deployment enables it, falls back to Web Speech otherwise, and
+renders only when at least one tier can work. A pleasant inversion
+follows: **Firefox, the no-Web-Speech browser, gains dictation on
+deployments with a speech model** — tested on the real Playwright
+firefox project. Clone-and-run stays keyless; `MOCK_STT=1` keeps CI at
+zero cost through the real route.

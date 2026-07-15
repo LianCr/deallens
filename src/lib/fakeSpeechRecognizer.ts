@@ -42,6 +42,12 @@ export class FakeRecognizer {
     this.started = true;
   }
 
+  stop() {
+    // The real API flushes pending finals before onend; the fake's
+    // finals were already emitted explicitly, so just end.
+    this.onend?.();
+  }
+
   abort() {
     this.aborted = true;
     // The real API fires an "aborted" error and then end.

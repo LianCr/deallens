@@ -13,6 +13,8 @@ import { test, expect } from "@playwright/test";
 /**
  * Emits two interim chunks and then the final utterance, mimicking
  * Chrome's timing. Serialized into the page, so no imports here.
+ * MediaRecorder is disabled alongside so these tests exercise the
+ * browser tier even though the E2E server has MOCK_STT enabled.
  */
 const FAKE_SPEECH_INIT = `
   class FakeSpeechRecognition {
@@ -38,11 +40,48 @@ const FAKE_SPEECH_INIT = `
         if (this.onend) this.onend();
       }, 200);
     }
+    stop() {
+      if (this.onend) this.onend();
+    }
     abort() {
       if (this.onend) this.onend();
     }
   }
   window.SpeechRecognition = FakeSpeechRecognition;
+  Object.defineProperty(window, "MediaRecorder", { value: undefined, configurable: true });
+`;
+
+/**
+ * The tier-2 pipeline faked at the browser boundary: getUserMedia hands
+ * out a stub stream and MediaRecorder emits one chunk on stop. The
+ * transcript itself comes from the real /api/transcribe route running
+ * in MOCK_STT mode — the full client → route → response path is live.
+ */
+const FAKE_RECORDER_INIT = `
+  if (!navigator.mediaDevices) {
+    Object.defineProperty(navigator, "mediaDevices", { value: {}, configurable: true });
+  }
+  navigator.mediaDevices.getUserMedia = async () => ({ getTracks: () => [] });
+  Object.defineProperty(window, "SpeechRecognition", { value: undefined, configurable: true });
+  Object.defineProperty(window, "webkitSpeechRecognition", { value: undefined, configurable: true });
+  class FakeMediaRecorder {
+    constructor() {
+      this.mimeType = "audio/webm";
+      this.ondataavailable = null;
+      this.onstop = null;
+    }
+    static isTypeSupported() { return true; }
+    start() {}
+    stop() {
+      if (this.ondataavailable) {
+        this.ondataavailable({ data: new Blob(["fake-audio"], { type: "audio/webm" }) });
+      }
+      if (this.onstop) this.onstop();
+    }
+  }
+  window.MediaRecorder = FakeMediaRecorder;
+  Object.defineProperty(window, "AudioContext", { value: undefined, configurable: true });
+  Object.defineProperty(window, "webkitAudioContext", { value: undefined, configurable: true });
 `;
 
 test("dictation streams into the finder input and submission stays manual", async ({
@@ -111,13 +150,65 @@ test("the mic discloses that the browser's speech service handles the audio", as
   );
 });
 
-test("browsers without the Web Speech API get no mic button at all", async ({
+test("the server tier records, transcribes via the real route, and stays manual", async ({
+  page,
+}) => {
+  // No SpeechRecognition fake here: the mic must pick the server tier
+  // on its own (the E2E server runs MOCK_STT=1, so the probe says yes).
+  await page.addInitScript(FAKE_RECORDER_INIT);
+  await page.goto("/");
+
+  const finder = page.getByTestId("nl-finder");
+  const input = finder.getByTestId("nl-finder-input");
+  const mic = finder.getByTestId("mic-button");
+  await expect(mic).toBeVisible();
+  await expect(mic).toHaveAttribute("title", /deployment's speech service/);
+
+  await mic.click();
+  await expect(finder.getByTestId("mic-status")).toHaveText(/Recording/);
+
+  await mic.click(); // stop → upload → mock transcript comes back
+  await expect(input).toHaveValue(/Mock transcription/);
+
+  // Editable, never auto-submitted — same contract as the browser tier.
+  await expect(page.getByTestId("nl-finder-card")).toHaveCount(0);
+  await input.fill("reliable family SUV under $30k");
+  await finder.getByRole("button", { name: "Find candidates" }).click();
+  await expect(page.getByTestId("nl-finder-card")).toHaveCount(3);
+});
+
+test("Firefox gains dictation through the server tier", async ({
+  page,
+  browserName,
+}) => {
+  test.skip(
+    browserName !== "firefox",
+    "Firefox has no Web Speech API — the interesting browser for tier 2",
+  );
+  await page.addInitScript(FAKE_RECORDER_INIT);
+  await page.goto("/");
+
+  const finder = page.getByTestId("nl-finder");
+  const mic = finder.getByTestId("mic-button");
+  await expect(mic).toBeVisible();
+  await mic.click();
+  await expect(finder.getByTestId("mic-status")).toHaveText(/Recording/);
+  await mic.click();
+  await expect(finder.getByTestId("nl-finder-input")).toHaveValue(/Mock transcription/);
+});
+
+test("no Web Speech and no server model → no mic button at all", async ({
   page,
   browserName,
 }) => {
   test.skip(
     browserName !== "firefox",
     "Firefox is the real-world no-Web-Speech browser; others get the fake installed",
+  );
+  // This deployment-without-a-key scenario is simulated by answering
+  // the availability probe with "disabled".
+  await page.route("**/api/transcribe", (route) =>
+    route.fulfill({ json: { enabled: false } }),
   );
   await page.goto("/");
 
