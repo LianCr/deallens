@@ -2,7 +2,12 @@
 
 import { useState, type FormEvent } from "react";
 import { MicButton } from "@/components/VoiceInput/MicButton";
+import { SpeakerButton } from "@/components/VoiceInput/SpeakerButton";
 import type { SpeechRecognitionCtor } from "@/lib/useSpeechInput";
+import type { SpeakerDeps } from "@/lib/useSpeaker";
+import { stopActivePlayback } from "@/lib/useSpeaker";
+import { useTtsAvailability } from "@/lib/ttsAvailability";
+import { setVoicePref, useVoicePref } from "@/lib/voicePref";
 import { AiBadge, ByokCard } from "./DealBrief";
 import styles from "./AskThread.module.css";
 
@@ -31,6 +36,8 @@ interface AskThreadProps {
   quote: number;
   /** Test seam for voice input (see useSpeechInput); omit in production. */
   speechRecognitionCtor?: SpeechRecognitionCtor | null;
+  /** Test seam for voice replies (see useSpeaker); omit in production. */
+  speakerDeps?: SpeakerDeps | null;
 }
 
 interface Turn {
@@ -51,7 +58,10 @@ export function AskThread({
   model,
   quote,
   speechRecognitionCtor,
+  speakerDeps,
 }: AskThreadProps) {
+  const voiceReplies = useVoicePref();
+  const ttsEnabled = useTtsAvailability() === "enabled";
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
   /** True while the input shows a live, not-yet-final dictation. */
@@ -124,7 +134,17 @@ export function AskThread({
         <div key={index} className={styles.turn}>
           <p className={styles.question}>{turn.q}</p>
           <div className={styles.answer} data-testid="ask-answer">
-            <AiBadge />
+            <span className={styles.answerMeta}>
+              <AiBadge />
+              {/* The newest answer speaks on its own (when voice replies
+                  are on); older bubbles keep a manual speaker, and a
+                  paused one resumes exactly where it stopped. */}
+              <SpeakerButton
+                text={turn.a}
+                autoPlay={voiceReplies && index === turns.length - 1}
+                deps={speakerDeps}
+              />
+            </span>
             <p className={styles.answerText}>{turn.a}</p>
           </div>
         </div>
@@ -173,9 +193,32 @@ export function AskThread({
       {/* No retry form without a key: retrying can't succeed. */}
       {!noKey && (
         <form className={styles.form} onSubmit={handleSubmit}>
-          <label className={styles.label} htmlFor="deal-ask-question">
-            Ask about this deal
-          </label>
+          <div className={styles.labelRow}>
+            <label className={styles.label} htmlFor="deal-ask-question">
+              Ask about this deal
+            </label>
+            {ttsEnabled && (
+              <button
+                type="button"
+                data-testid="voice-replies-toggle"
+                className={styles.voiceToggle}
+                aria-pressed={voiceReplies}
+                title={
+                  voiceReplies
+                    ? "New answers speak automatically — click to mute"
+                    : "Voice replies are muted — click to let new answers speak"
+                }
+                onClick={() => {
+                  const next = !voiceReplies;
+                  setVoicePref(next);
+                  // Muting silences whatever is talking right now too.
+                  if (!next) stopActivePlayback();
+                }}
+              >
+                {voiceReplies ? "🔊 Voice on" : "🔇 Voice off"}
+              </button>
+            )}
+          </div>
           <div className={styles.inputRow}>
             <input
               id="deal-ask-question"

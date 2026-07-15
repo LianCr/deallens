@@ -29,13 +29,39 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"], ...chromiumLaunch } },
-    { name: "firefox", use: { ...devices["Desktop Firefox"] } },
-    { name: "webkit", use: { ...devices["Desktop Safari"] } },
+    // Each project spoofs its own client IP so the per-IP AI rate
+    // buckets never couple parallel browser projects to each other.
+    {
+      name: "chromium",
+      use: {
+        ...devices["Desktop Chrome"],
+        ...chromiumLaunch,
+        extraHTTPHeaders: { "x-forwarded-for": "e2e-chromium" },
+      },
+    },
+    {
+      name: "firefox",
+      use: {
+        ...devices["Desktop Firefox"],
+        extraHTTPHeaders: { "x-forwarded-for": "e2e-firefox" },
+      },
+    },
+    {
+      name: "webkit",
+      use: {
+        ...devices["Desktop Safari"],
+        extraHTTPHeaders: { "x-forwarded-for": "e2e-webkit" },
+      },
+    },
     {
       name: "chromium-no-js",
       grep: /@no-js/,
-      use: { ...devices["Desktop Chrome"], javaScriptEnabled: false, ...chromiumLaunch },
+      use: {
+        ...devices["Desktop Chrome"],
+        javaScriptEnabled: false,
+        ...chromiumLaunch,
+        extraHTTPHeaders: { "x-forwarded-for": "e2e-chromium-no-js" },
+      },
     },
   ],
   webServer: {
@@ -49,7 +75,11 @@ export default defineConfig({
     env: {
       MOCK_AI: "1",
       MOCK_STT: "1",
-      AI_LIMIT_IP_PER_MINUTE: "30",
+      MOCK_TTS: "1",
+      // Roomy for one project's traffic (each project has its own IP
+      // bucket via extraHTTPHeaders above); the rate-limit spec trips
+      // this exact number with its own spoofed probe IP.
+      AI_LIMIT_IP_PER_MINUTE: "60",
       AI_LIMIT_IP_PER_DAY: "1000",
       AI_LIMIT_GLOBAL_PER_DAY: "100000",
     },

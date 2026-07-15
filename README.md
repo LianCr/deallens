@@ -167,6 +167,13 @@ idea at demo scale, as an extension of the honesty red lines
   replace the FACTS block as this deal's verdict math; `max_uses` caps
   per-request searches and `AI_WEB_SEARCH=0` turns it off
   ([ADR 005](docs/adr/005-ai-native.md)).
+- **Voice replies**: Q&A answers speak automatically in a warm,
+  conversational TTS voice (`gpt-4o-mini-tts`), with a 🔊 control whose
+  contract is exact — tap pauses at that spot, tap resumes from it, tap
+  after the end replays; only one reply talks at a time, and a 🔇
+  preference (persisted) mutes auto-speak. The brief gets a manual
+  "listen" button. Same key, same guard, audio never stored
+  ([ADR 006](docs/adr/006-voice-input.md)).
 - **Voice input, two tiers** on both NL surfaces
   ([ADR 006](docs/adr/006-voice-input.md)): the keyless default is the
   browser's Web Speech API, tuned to survive mid-sentence pauses
@@ -199,9 +206,11 @@ npm run dev        # no API keys — all sources are free public APIs
 AI features are optional: add `ANTHROPIC_API_KEY=…` to `.env.local` to
 enable them locally. Without a key, the AI surfaces degrade to an
 honest explanation and everything else works. `STT_API_KEY=…`
-(optional, OpenAI) upgrades voice dictation to a Whisper-family model
-(`STT_MODEL` to override which); without it, dictation uses the
-browser's own speech service where available.
+(optional, OpenAI) powers voice in both directions: dictation upgrades
+to a Whisper-family model (`STT_MODEL` to override) and AI replies
+speak aloud via TTS (`TTS_MODEL` / `TTS_VOICE` to override); without
+it, dictation uses the browser's own speech service where available
+and replies stay text-only.
 
 | Command | What it does |
 | ------- | ------------ |

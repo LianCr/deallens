@@ -2,6 +2,9 @@ import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { FakeRecognizer } from "@/lib/fakeSpeechRecognizer";
 import type { SpeechRecognitionCtor } from "@/lib/useSpeechInput";
+import { primeTtsAvailabilityForTests } from "@/lib/ttsAvailability";
+import { setVoicePref } from "@/lib/voicePref";
+import { resetSpeakerArbiterForTests, type SpeakerDeps } from "@/lib/useSpeaker";
 import { AskThread } from "./AskThread";
 
 const props = { make: "honda", year: 2022, model: "civic", quote: 24500 };
@@ -109,6 +112,86 @@ describe("AskThread", () => {
     // No retry, no form: asking again without a key can't succeed.
     expect(screen.queryByRole("button", { name: /try again/i })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Ask about this deal")).not.toBeInTheDocument();
+  });
+
+  describe("voice replies", () => {
+    function fakeSpeaker() {
+      const playable = {
+        play: vi.fn().mockResolvedValue(undefined),
+        pause: vi.fn(),
+        seekToStart: vi.fn(),
+        dispose: vi.fn(),
+        onEnded: vi.fn(),
+        onError: vi.fn(),
+      };
+      const deps: SpeakerDeps = { load: vi.fn().mockResolvedValue(playable) };
+      return { deps, playable };
+    }
+
+    beforeEach(() => {
+      primeTtsAvailabilityForTests("enabled");
+      resetSpeakerArbiterForTests();
+      // jsdom localStorage persists across tests in a file; pin the pref.
+      setVoicePref(true);
+    });
+
+    it("the newest answer speaks on its own when voice replies are on", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(streamResponse(["Grounded answer."])),
+      );
+      const { deps, playable } = fakeSpeaker();
+      render(<AskThread {...props} speakerDeps={deps} />);
+
+      ask("Is this the right month to buy?");
+      await waitFor(() => expect(screen.getByTestId("ask-answer")).toBeInTheDocument());
+      await waitFor(() => expect(playable.play).toHaveBeenCalledTimes(1));
+      expect(deps.load).toHaveBeenCalledWith("Grounded answer.");
+      expect(screen.getByTestId("speaker-button")).toHaveAttribute(
+        "data-state",
+        "playing",
+      );
+    });
+
+    it("stays silent when voice replies are muted — manual play still available", async () => {
+      setVoicePref(false);
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(streamResponse(["Grounded answer."])),
+      );
+      const { deps, playable } = fakeSpeaker();
+      render(<AskThread {...props} speakerDeps={deps} />);
+
+      const toggle = screen.getByTestId("voice-replies-toggle");
+      expect(toggle).toHaveAttribute("aria-pressed", "false");
+
+      ask("Is this the right month to buy?");
+      await waitFor(() => expect(screen.getByTestId("ask-answer")).toBeInTheDocument());
+      expect(playable.play).not.toHaveBeenCalled();
+
+      // The bubble's speaker still plays on demand.
+      fireEvent.click(screen.getByTestId("speaker-button"));
+      await waitFor(() => expect(playable.play).toHaveBeenCalledTimes(1));
+    });
+
+    it("muting mid-playback silences the current answer", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(streamResponse(["Grounded answer."])),
+      );
+      const { deps, playable } = fakeSpeaker();
+      render(<AskThread {...props} speakerDeps={deps} />);
+
+      ask("Is this the right month to buy?");
+      await waitFor(() => expect(playable.play).toHaveBeenCalled());
+
+      fireEvent.click(screen.getByTestId("voice-replies-toggle"));
+      expect(playable.pause).toHaveBeenCalled();
+      expect(screen.getByTestId("speaker-button")).toHaveAttribute(
+        "data-state",
+        "paused",
+      );
+    });
   });
 
   describe("voice input", () => {
