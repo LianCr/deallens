@@ -30,10 +30,16 @@ interface ApiError {
 }
 
 /** "AI-generated" marker — rendered wherever AI output can appear. */
-export function AiBadge() {
+export function AiBadge({
+  label = "AI-generated · grounded in the numbers above",
+  title = "Grounded: the model may only reference server-computed numbers",
+}: {
+  label?: string;
+  title?: string;
+} = {}) {
   return (
-    <span className={styles.aiBadge} title="Grounded: the model may only reference server-computed numbers">
-      AI-generated · grounded in the numbers above
+    <span className={styles.aiBadge} title={title}>
+      {label}
     </span>
   );
 }

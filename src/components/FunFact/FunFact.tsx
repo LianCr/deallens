@@ -92,7 +92,12 @@ export function FunFact({ make, year, model, speakerDeps }: FunFactProps) {
       {(phase === "streaming" || phase === "done") && (
         <div className={styles.card} data-testid="fun-fact-card">
           <span className={styles.cardMeta}>
-            <AiBadge />
+            {/* This card isn't grounded in the page's numbers — its
+                honesty contract is different, and the badge says so. */}
+            <AiBadge
+              label="AI-generated · verified where possible, sourced when web-found"
+              title="One true story about this exact vehicle; the model declines rather than inventing one"
+            />
             {phase === "done" && text.length > 0 && (
               <SpeakerButton text={text} voiceStyle="storyteller" deps={speakerDeps} />
             )}
