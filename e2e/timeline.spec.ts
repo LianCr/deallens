@@ -25,6 +25,10 @@ test("timeline renders and the sweep cursor drives the header readout", async ({
   await expect(rangeButton).toBeVisible({ timeout: 10_000 });
 
   const svg = timeline.locator("svg");
+  // Sections below the timeline (e.g. the AI deal brief) mean "scroll to
+  // page bottom" can leave the chart above the viewport, so its box would
+  // be off-screen and the hover would miss. Pull the SVG back into view.
+  await svg.scrollIntoViewIfNeeded();
   const box = (await svg.boundingBox())!;
   await page.mouse.move(box.x + box.width * 0.4, box.y + box.height / 2);
   // The header now names the month under the cursor.
@@ -46,6 +50,7 @@ test("sweeping near an event dot shows it; clicking pins it", async ({ page }) =
   // events) by walking the pointer across the chart until the readout
   // activates.
   const svg = timeline.locator("svg");
+  await svg.scrollIntoViewIfNeeded();
   const box = (await svg.boundingBox())!;
   let activated = false;
   for (let f = 0.05; f <= 0.95; f += 0.05) {
