@@ -39,6 +39,11 @@ test("a second question replays the first turn to the server", async ({ page }) 
   const thread = page.getByTestId("ask-thread");
   await thread.getByLabel("Ask about this deal").fill(FIRST_QUESTION);
   await thread.getByRole("button", { name: "Ask" }).click();
+  // Wait for the COMMITTED turn, not just its text — the same words are
+  // visible in the streaming bubble a beat earlier, while the form still
+  // ignores submits. Generous timeout: webkit under full-suite parallel
+  // load can stream the mock answer slowly.
+  await expect(thread.getByTestId("ask-answer")).toHaveCount(1, { timeout: 15_000 });
   await expect(thread.getByText(/the reasoning transfers/)).toBeVisible();
 
   await thread.getByLabel("Ask about this deal").fill("What about the fuel cost?");

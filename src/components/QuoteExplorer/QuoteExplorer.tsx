@@ -156,11 +156,17 @@ export function QuoteExplorer({
       } as CSSProperties)
     : undefined;
 
+  // Only the median tick carries text: one label can't crowd its
+  // neighbors when the market clusters in a sliver of the range (a real
+  // failure mode — a quote far outside the market stretches the track,
+  // and "P25 median P75" mashed into overlap). The quartile ticks stay
+  // as quiet marks — the colored zones and the chips below carry their
+  // meaning in plain words.
   const detentTicks = detents
     ? ([
-        { label: "P25", value: detents.p25 },
-        { label: "median", value: detents.median },
-        { label: "P75", value: detents.p75 },
+        { key: "p25", label: null, value: detents.p25 },
+        { key: "median", label: "median", value: detents.median },
+        { key: "p75", label: null, value: detents.p75 },
       ] as const)
     : null;
   const span = sliderMax - sliderMin;
@@ -297,7 +303,7 @@ export function QuoteExplorer({
                   <div className={styles.detents} aria-hidden="true">
                     {detentTicks.map((tick) => (
                       <span
-                        key={tick.label}
+                        key={tick.key}
                         className={styles.detent}
                         style={{ left: `${((tick.value - sliderMin) / span) * 100}%` }}
                         title={formatDollars(tick.value)}

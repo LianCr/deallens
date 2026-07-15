@@ -2,7 +2,9 @@
 
 import { useState, type FormEvent } from "react";
 import { MicButton } from "@/components/VoiceInput/MicButton";
+import { SpeakerButton } from "@/components/VoiceInput/SpeakerButton";
 import type { SpeechRecognitionCtor } from "@/lib/useSpeechInput";
+import type { SpeakerDeps } from "@/lib/useSpeaker";
 import { AiBadge, ByokCard } from "./DealBrief";
 import styles from "./AskThread.module.css";
 
@@ -31,6 +33,8 @@ interface AskThreadProps {
   quote: number;
   /** Test seam for voice input (see useSpeechInput); omit in production. */
   speechRecognitionCtor?: SpeechRecognitionCtor | null;
+  /** Test seam for voice replies (see useSpeaker); omit in production. */
+  speakerDeps?: SpeakerDeps | null;
 }
 
 interface Turn {
@@ -51,6 +55,7 @@ export function AskThread({
   model,
   quote,
   speechRecognitionCtor,
+  speakerDeps,
 }: AskThreadProps) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState("");
@@ -124,7 +129,17 @@ export function AskThread({
         <div key={index} className={styles.turn}>
           <p className={styles.question}>{turn.q}</p>
           <div className={styles.answer} data-testid="ask-answer">
-            <AiBadge />
+            <span className={styles.answerMeta}>
+              <AiBadge />
+              {/* The newest answer speaks on its own; its 🔊 is the one
+                  control — tap pauses in place, tap resumes from there.
+                  Older bubbles keep their speaker (and their spot). */}
+              <SpeakerButton
+                text={turn.a}
+                autoPlay={index === turns.length - 1}
+                deps={speakerDeps}
+              />
+            </span>
             <p className={styles.answerText}>{turn.a}</p>
           </div>
         </div>

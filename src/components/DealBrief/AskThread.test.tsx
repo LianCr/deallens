@@ -2,6 +2,8 @@ import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { FakeRecognizer } from "@/lib/fakeSpeechRecognizer";
 import type { SpeechRecognitionCtor } from "@/lib/useSpeechInput";
+import { primeTtsAvailabilityForTests } from "@/lib/ttsAvailability";
+import { resetSpeakerArbiterForTests, type SpeakerDeps } from "@/lib/useSpeaker";
 import { AskThread } from "./AskThread";
 
 const props = { make: "honda", year: 2022, model: "civic", quote: 24500 };
@@ -109,6 +111,67 @@ describe("AskThread", () => {
     // No retry, no form: asking again without a key can't succeed.
     expect(screen.queryByRole("button", { name: /try again/i })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Ask about this deal")).not.toBeInTheDocument();
+  });
+
+  describe("voice replies", () => {
+    function fakeSpeaker() {
+      const playable = {
+        play: vi.fn().mockResolvedValue(undefined),
+        pause: vi.fn(),
+        seekToStart: vi.fn(),
+        dispose: vi.fn(),
+        onEnded: vi.fn(),
+        onError: vi.fn(),
+      };
+      const deps: SpeakerDeps = { load: vi.fn().mockResolvedValue(playable) };
+      return { deps, playable };
+    }
+
+    beforeEach(() => {
+      primeTtsAvailabilityForTests("enabled");
+      resetSpeakerArbiterForTests();
+    });
+
+    it("a finished answer speaks on its own", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(streamResponse(["Grounded answer."])),
+      );
+      const { deps, playable } = fakeSpeaker();
+      render(<AskThread {...props} speakerDeps={deps} />);
+
+      ask("Is this the right month to buy?");
+      await waitFor(() => expect(screen.getByTestId("ask-answer")).toBeInTheDocument());
+      await waitFor(() => expect(playable.play).toHaveBeenCalledTimes(1));
+      expect(deps.load).toHaveBeenCalledWith("Grounded answer.");
+      expect(screen.getByTestId("speaker-button")).toHaveAttribute(
+        "data-state",
+        "playing",
+      );
+    });
+
+    it("the bubble's speaker pauses in place and resumes on tap", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(streamResponse(["Grounded answer."])),
+      );
+      const { deps, playable } = fakeSpeaker();
+      render(<AskThread {...props} speakerDeps={deps} />);
+
+      ask("Is this the right month to buy?");
+      await waitFor(() => expect(playable.play).toHaveBeenCalledTimes(1));
+
+      const speaker = screen.getByTestId("speaker-button");
+      fireEvent.click(speaker);
+      expect(playable.pause).toHaveBeenCalled();
+      expect(speaker).toHaveAttribute("data-state", "paused");
+
+      fireEvent.click(speaker);
+      await waitFor(() => expect(speaker).toHaveAttribute("data-state", "playing"));
+      // Resume, not replay: one load, no seek.
+      expect(deps.load).toHaveBeenCalledTimes(1);
+      expect(playable.seekToStart).not.toHaveBeenCalled();
+    });
   });
 
   describe("voice input", () => {

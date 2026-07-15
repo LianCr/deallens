@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useDealTarget } from "@/lib/dealTarget";
+import { SpeakerButton } from "@/components/VoiceInput/SpeakerButton";
+import type { SpeakerDeps } from "@/lib/useSpeaker";
 import styles from "./DealBrief.module.css";
 
 /**
@@ -16,6 +18,8 @@ interface DealBriefProps {
   year: number;
   model: string;
   quote: number;
+  /** Test seam for voice replies (see useSpeaker); omit in production. */
+  speakerDeps?: SpeakerDeps | null;
 }
 
 type Phase = "idle" | "streaming" | "done" | "error";
@@ -26,10 +30,16 @@ interface ApiError {
 }
 
 /** "AI-generated" marker — rendered wherever AI output can appear. */
-export function AiBadge() {
+export function AiBadge({
+  label = "AI-generated · grounded in the numbers above",
+  title = "Grounded: the model may only reference server-computed numbers",
+}: {
+  label?: string;
+  title?: string;
+} = {}) {
   return (
-    <span className={styles.aiBadge} title="Grounded: the model may only reference server-computed numbers">
-      AI-generated · grounded in the numbers above
+    <span className={styles.aiBadge} title={title}>
+      {label}
     </span>
   );
 }
@@ -76,7 +86,7 @@ function BriefText({ text }: { text: string }) {
   );
 }
 
-export function DealBrief({ make, year, model, quote }: DealBriefProps) {
+export function DealBrief({ make, year, model, quote, speakerDeps }: DealBriefProps) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [text, setText] = useState("");
   const [error, setError] = useState<ApiError | null>(null);
@@ -158,6 +168,15 @@ export function DealBrief({ make, year, model, quote }: DealBriefProps) {
           <BriefText text={text} />
           {phase === "streaming" && <span className={styles.cursor} aria-hidden="true" />}
         </div>
+      )}
+
+      {/* The brief can be read aloud, but never auto-plays — it's ~1.5
+          minutes of audio; the shopper opts in with a tap. */}
+      {phase === "done" && text.length > 0 && (
+        <p className={styles.listenRow}>
+          <SpeakerButton text={text} deps={speakerDeps} />
+          <span className={styles.listenHint}>Listen to this brief</span>
+        </p>
       )}
 
       {phase === "error" && error && (

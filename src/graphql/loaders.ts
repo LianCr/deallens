@@ -1,6 +1,11 @@
 import DataLoader from "dataloader";
 import { fetchModelsForMakeYear, type VpicModel } from "@/sources/vpic";
-import { fetchFuelEconomy, type FuelEconomy } from "@/sources/fueleconomy";
+import {
+  fetchFuelEconomy,
+  fetchFuelPrices,
+  type FuelEconomy,
+  type FuelPrices,
+} from "@/sources/fueleconomy";
 
 /**
  * Two cache tiers with different jobs:
@@ -62,6 +67,23 @@ export async function loadFuelEconomy(
   const record = await fetchFuelEconomy(year, make, model);
   boundedSet(fuelEconomyCache, key, { record, fetchedAt: Date.now() });
   return record;
+}
+
+let fuelPricesCache: { prices: FuelPrices; fetchedAt: number } | null = null;
+
+/**
+ * The national average pump prices update weekly, so a day of staleness
+ * is invisible. Failures are NOT cached: the next request retries, and
+ * the resolver treats a throw as "no price this time" (see resolvers.ts)
+ * rather than letting it take the MPG answer down.
+ */
+export async function loadFuelPrices(): Promise<FuelPrices> {
+  if (fuelPricesCache && Date.now() - fuelPricesCache.fetchedAt < DAY_MS) {
+    return fuelPricesCache.prices;
+  }
+  const prices = await fetchFuelPrices();
+  fuelPricesCache = { prices, fetchedAt: Date.now() };
+  return prices;
 }
 
 export interface Loaders {

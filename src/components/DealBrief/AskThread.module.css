@@ -38,6 +38,13 @@
   overflow-wrap: anywhere;
 }
 
+/* Badge + speaker on one line above the answer text. */
+.answerMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .cursor {
   display: inline-block;
   width: 0.55em;
@@ -70,6 +77,7 @@
   font-size: 0.875rem;
   font-weight: 600;
 }
+
 
 .inputRow {
   display: flex;

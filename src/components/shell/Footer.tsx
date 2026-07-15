@@ -24,6 +24,17 @@ export function Footer() {
             Methodology
           </a>
         </p>
+        <p className={styles.footerLine}>
+          Designed &amp; built by{" "}
+          <a
+            href="https://github.com/LianCr"
+            className={styles.footerLink}
+            rel="noopener"
+          >
+            Chunren Lian
+          </a>{" "}
+          · © 2026
+        </p>
       </div>
     </footer>
   );

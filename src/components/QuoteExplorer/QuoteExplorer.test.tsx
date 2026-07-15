@@ -78,9 +78,12 @@ describe("QuoteExplorer", () => {
     // Hard-stop gradient with the P25/P75 stops, as a track custom prop.
     expect(slider.style.getPropertyValue("--zone-track")).toContain("linear-gradient");
     const form = screen.getByTestId("quote-explorer");
-    expect(within(form).getByText("P25")).toBeInTheDocument();
+    // Only the median tick carries text — a tight market mashed
+    // "P25 median P75" into overlap, so the quartiles are quiet marks
+    // (the chips below say it in words).
     expect(within(form).getByText("median")).toBeInTheDocument();
-    expect(within(form).getByText("P75")).toBeInTheDocument();
+    expect(within(form).queryByText("P25")).not.toBeInTheDocument();
+    expect(within(form).queryByText("P75")).not.toBeInTheDocument();
   });
 
   test("soft-snaps a drag that lands near a detent", () => {

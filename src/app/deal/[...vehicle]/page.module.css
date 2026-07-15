@@ -61,16 +61,8 @@
   font-weight: 600;
 }
 
-.fuelCost {
-  margin: 0;
-  font-size: 1.5rem;
-}
-
-.fuelDetail {
-  font-size: 0.9375rem;
-  color: var(--color-muted);
-  line-height: 1.6;
-}
+/* The fuel-cost sentence styles live with the FuelCost island now
+   (src/components/FuelCost/), which owns that markup. */
 
 /* ——— Quote prompt (no quote in URL yet) ——— */
 

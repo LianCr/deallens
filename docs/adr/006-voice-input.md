@@ -105,3 +105,26 @@ follows: **Firefox, the no-Web-Speech browser, gains dictation on
 deployments with a speech model** — tested on the real Playwright
 firefox project. Clone-and-run stays keyless; `MOCK_STT=1` keeps CI at
 zero cost through the real route.
+
+## Amendment: voice out — the coach talks back
+
+The same key closes the loop in the other direction: `/api/speak`
+forwards a finished reply to a speech-synthesis model
+(`gpt-4o-mini-tts` by default, `TTS_MODEL`/`TTS_VOICE` tunable) and
+streams the audio straight through — nothing stored, same shared rate
+guard, same honest 503 without the key, `MOCK_TTS=1` for CI. New Q&A
+answers speak automatically, and each answer's 🔊 is the one control —
+no separate global toggle (field feedback: one button on the reply is
+the whole interface). The brief is ~1.5 minutes of audio, so it gets a
+manual "listen" button instead.
+
+The pause/resume contract came free: the speaker button drives a plain
+`<audio>` element, and the browser's own `pause()` keeps
+`currentTime` — tap to pause at the exact spot, tap to resume from it,
+tap after the end to replay. A module-level arbiter guarantees only
+one utterance plays at a time (starting one pauses the other, which
+keeps its place). A browser that blocks autoplay degrades to the
+paused state — one tap starts it, never an error. Synthesis costs on
+the order of a cent per minute of audio (per OpenAI's published
+estimate for gpt-4o-mini-tts); the 2,000-character cap and the shared
+daily guard bound the ceiling.

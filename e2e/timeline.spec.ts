@@ -3,12 +3,21 @@ import { test, expect, type Page } from "@playwright/test";
 const DEAL_URL = "/deal/honda/2022/civic?quote=24500";
 
 /**
- * Scroll the page (not the locator): the SSR skeleton is replaced
- * in-place by the interactive timeline when it enters the viewport, so
- * anchoring a scroll to the skeleton node races its own replacement.
+ * Scroll the page via a one-shot evaluate (not a retried locator
+ * action): the SSR skeleton is replaced in-place by the interactive
+ * timeline when it enters the viewport, so anchoring a retrying scroll
+ * to the skeleton node races its own replacement. Centering the
+ * container (instead of the old scroll-to-page-bottom) matters now that
+ * the page has grown sections below the chart — at the bottom, the
+ * timeline sits above the viewport and outside the lazy-mount margin,
+ * so the interactive layer never mounted.
  */
 async function scrollToTimeline(page: Page) {
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await page.evaluate(() => {
+    document
+      .querySelector('[data-testid="price-history-timeline"]')
+      ?.scrollIntoView({ block: "center" });
+  });
 }
 
 test("timeline renders and the sweep cursor drives the header readout", async ({

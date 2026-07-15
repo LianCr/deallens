@@ -145,7 +145,11 @@ export function briefCacheKey(
 const store = globalThis as unknown as {
   __dealLensAiGuard?: AiGuard;
   __dealLensBriefCache?: ResponseCache;
+  __dealLensFunFactCache?: ResponseCache;
 };
+
+/** A week — fun facts about a fixed model year don't go stale. */
+const FUN_FACT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export function getAiGuard(): AiGuard {
   store.__dealLensAiGuard ??= new AiGuard(guardConfigFromEnv());
@@ -155,4 +159,13 @@ export function getAiGuard(): AiGuard {
 export function getBriefCache(): ResponseCache {
   store.__dealLensBriefCache ??= new ResponseCache();
   return store.__dealLensBriefCache;
+}
+
+/**
+ * Fun facts are keyed by vehicle alone, so one generation serves every
+ * visitor who ever opens that model — the cheapest AI feature on the site.
+ */
+export function getFunFactCache(): ResponseCache {
+  store.__dealLensFunFactCache ??= new ResponseCache(FUN_FACT_TTL_MS);
+  return store.__dealLensFunFactCache;
 }

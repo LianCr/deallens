@@ -61,7 +61,7 @@ test("AI endpoints rate-limit with honest copy, per IP", async ({ request }, tes
   expect(first.status()).toBe(200);
 
   let limited = null;
-  for (let i = 0; i < 31; i++) {
+  for (let i = 0; i < 61; i++) {
     const response = await post();
     if (response.status() === 429) {
       limited = response;

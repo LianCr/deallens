@@ -100,6 +100,10 @@ export const typeDefs = /* GraphQL */ `
     "The fueleconomy.gov model variant the MPG belongs to."
     feModelName: String!
     fuelType: String!
+    "This week's national average price for this vehicle's fuel, USD per gallon (fueleconomy.gov weekly series). Null when the fuel isn't sold by the gallon (e.g. electricity) or the price feed is unavailable — the MPG answer stands either way."
+    dollarsPerGallon: Float
+    "Attribution for dollarsPerGallon; null whenever the price is."
+    priceSource: String
     dataSource: DataSourceTag!
   }
 `;

@@ -3,17 +3,16 @@ import { notFound } from "next/navigation";
 import { executeGraphQL } from "@/graphql/yoga";
 import { dealPath, parseVehicleSegments, titleCase } from "@/lib/vehicleUrl";
 import type { PriceBucket, MarketEvent, PricePoint, Verdict } from "@/domain/types";
-import {
-  annualFuelCost,
-  DEFAULT_DOLLARS_PER_GALLON,
-  DEFAULT_MILES_PER_YEAR,
-} from "@/domain/fuelCost";
+import { annualFuelCost } from "@/domain/fuelCost";
 import { PriceContextChart } from "@/components/charts/PriceContextChart";
 import { PriceHistoryTimeline } from "@/components/charts/PriceHistoryTimeline";
 import { DemoDataBadge, ProvenanceBadge } from "@/components/DataBadge/DataBadge";
 import { AiBadge, DealBrief } from "@/components/DealBrief/DealBrief";
 import { AskThread } from "@/components/DealBrief/AskThread";
+import { FuelCost } from "@/components/FuelCost/FuelCost";
+import { FunFact } from "@/components/FunFact/FunFact";
 import { QuoteExplorer } from "@/components/QuoteExplorer/QuoteExplorer";
+import { WhenToBuy } from "@/components/WhenToBuy/WhenToBuy";
 import styles from "./page.module.css";
 
 /**
@@ -41,6 +40,9 @@ interface FuelEconomyData {
   combinedMpg: number;
   feModelName: string;
   fuelType: string;
+  /** This week's national average $/gallon; null = no real price. */
+  dollarsPerGallon: number | null;
+  priceSource: string | null;
 }
 
 /** Year range the pricing gateway accepts; outside it the URL is junk. */
@@ -127,7 +129,7 @@ export default async function DealPage({ params, searchParams }: DealPageProps) 
     executeGraphQL<{ fuelEconomy: FuelEconomyData | null }>(
       `query Fuel($make: String!, $model: String!, $year: Int!) {
         fuelEconomy(make: $make, model: $model, year: $year) {
-          combinedMpg feModelName fuelType
+          combinedMpg feModelName fuelType dollarsPerGallon priceSource
         }
       }`,
       { make: parsed.make, model: parsed.model, year: parsed.year },
@@ -137,8 +139,14 @@ export default async function DealPage({ params, searchParams }: DealPageProps) 
     ),
   ]);
 
+  // Visibility guard only — the FuelCost island reruns this same pure
+  // function (deterministic, so server and island agree) and owns the
+  // displayed figure, including live mileage edits.
   const fuelCost = fuelEconomy
-    ? annualFuelCost({ combinedMpg: fuelEconomy.combinedMpg })
+    ? annualFuelCost({
+        combinedMpg: fuelEconomy.combinedMpg,
+        dollarsPerGallon: fuelEconomy.dollarsPerGallon ?? undefined,
+      })
     : null;
 
   const firstBucket = priceContext.distribution[0];
@@ -190,6 +198,10 @@ export default async function DealPage({ params, searchParams }: DealPageProps) 
           history={priceContext.history}
           events={priceContext.events}
         />
+        {/* Caption-grade seasonal hint; renders nothing when the data
+            is too thin or the dip is noise — absence is the honest
+            state, and the timeline's empty state covers thin markets. */}
+        <WhenToBuy history={priceContext.history} />
       </section>
 
       {fuelEconomy && fuelCost !== null && (
@@ -197,19 +209,24 @@ export default async function DealPage({ params, searchParams }: DealPageProps) 
           <div className={styles.sectionHeader}>
             <h2 className={styles.sectionTitle}>Cost to own: fuel</h2>
           </div>
-          <p className={styles.fuelCost}>
-            <strong>${fuelCost.toLocaleString("en-US")}</strong> per year
-            <span className={styles.fuelDetail}>
-              {" "}
-              at {fuelEconomy.combinedMpg} MPG combined (EPA,{" "}
-              {fuelEconomy.feModelName}, {fuelEconomy.fuelType.toLowerCase()}) —
-              assuming {DEFAULT_MILES_PER_YEAR.toLocaleString("en-US")} miles/year
-              and ${DEFAULT_DOLLARS_PER_GALLON.toFixed(2)}/gallon. Real data,
-              explicit assumptions.
-            </span>
-          </p>
+          <FuelCost
+            combinedMpg={fuelEconomy.combinedMpg}
+            feModelName={fuelEconomy.feModelName}
+            fuelType={fuelEconomy.fuelType}
+            dollarsPerGallon={fuelEconomy.dollarsPerGallon}
+            priceSource={fuelEconomy.priceSource}
+          />
         </section>
       )}
+
+      {/* One true, delightful story about this exact vehicle —
+          reveal-on-tap, generated once per model and cached. */}
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>One more thing</h2>
+        </div>
+        <FunFact make={parsed.make} year={parsed.year} model={parsed.model} />
+      </section>
 
       {/* AI narrates, math decides: the brief may only restate the
           server-computed numbers above. It's an enhancement — the verdict

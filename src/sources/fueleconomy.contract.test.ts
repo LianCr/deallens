@@ -7,8 +7,11 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import {
   fetchFuelEconomy,
+  fetchFuelPrices,
+  gallonPriceForFuelType,
   matchFeModel,
   normalizeMenuItems,
+  parseFuelPrices,
   parseVehicleRecord,
 } from "./fueleconomy";
 import { UpstreamError } from "./errors";
@@ -17,6 +20,7 @@ import menuModelsUnknown from "@/fixtures/fueleconomy/menu-model-unknown-make.js
 import menuOptionsCivic from "@/fixtures/fueleconomy/menu-options-civic-4dr-2022.json";
 import menuOptionsInsight from "@/fixtures/fueleconomy/menu-options-insight-2022.json";
 import vehicleCivic from "@/fixtures/fueleconomy/vehicle-44133-civic.json";
+import fuelPrices from "@/fixtures/fueleconomy/fuelprices.json";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -75,6 +79,66 @@ describe("parseVehicleRecord", () => {
     expect(() => parseVehicleRecord({ comb08: "0" }, "X")).toThrowError(
       UpstreamError,
     );
+  });
+});
+
+describe("parseFuelPrices", () => {
+  test("string-valued dollars from the real payload parse to numbers", () => {
+    expect(parseFuelPrices(fuelPrices)).toEqual({
+      regular: 4.15,
+      midgrade: 4.76,
+      premium: 5.14,
+      diesel: 5.21,
+    });
+  });
+
+  test("drift fails loudly: a missing gallon price is FORMAT, not garbage", () => {
+    const withoutPremium: Record<string, unknown> = { ...fuelPrices };
+    delete withoutPremium.premium;
+    expect(() => parseFuelPrices(withoutPremium)).toThrowError(UpstreamError);
+    expect(() => parseFuelPrices(withoutPremium)).toThrowError(/premium/);
+  });
+
+  test("drift fails loudly: non-numeric strings and null payloads", () => {
+    expect(() =>
+      parseFuelPrices({ ...fuelPrices, regular: "N/A" }),
+    ).toThrowError(UpstreamError);
+    expect(() => parseFuelPrices(null)).toThrowError(UpstreamError);
+    expect(() => parseFuelPrices({ ...fuelPrices, diesel: "" })).toThrowError(
+      UpstreamError,
+    );
+  });
+});
+
+describe("gallonPriceForFuelType", () => {
+  const prices = parseFuelPrices(fuelPrices);
+
+  test("EPA fuelType labels map case-insensitively to gallon prices", () => {
+    expect(gallonPriceForFuelType("Regular", prices)).toBe(4.15);
+    expect(gallonPriceForFuelType("Premium", prices)).toBe(5.14);
+    expect(gallonPriceForFuelType("Diesel", prices)).toBe(5.21);
+    expect(gallonPriceForFuelType("MIDGRADE", prices)).toBe(4.76);
+  });
+
+  test("fuels not sold by the gallon get null — electric $/kWh never enters gallon math", () => {
+    expect(gallonPriceForFuelType("Electricity", prices)).toBeNull();
+    expect(gallonPriceForFuelType("Regular Gas and Electricity", prices)).toBeNull();
+    expect(gallonPriceForFuelType("", prices)).toBeNull();
+  });
+});
+
+describe("fetchFuelPrices (end-to-end against the fixture)", () => {
+  test("decodes the real weekly payload", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify(fuelPrices), { status: 200 })),
+    );
+    await expect(fetchFuelPrices()).resolves.toEqual({
+      regular: 4.15,
+      midgrade: 4.76,
+      premium: 5.14,
+      diesel: 5.21,
+    });
   });
 });
 

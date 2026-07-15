@@ -129,6 +129,7 @@ demonstrated in both directions.
 | ------ | ------ | ----- |
 | NHTSA vPIC | **Real, live** | Models merged across car/mpv/truck vehicle types (an unfiltered query mixes in motorcycles). Unknown makes return HTTP 200 + empty `Results` — handled as an answer, not an error. VIN errors are detected from the payload's `ErrorCode`, never the HTTP status. |
 | EPA fueleconomy.gov | **Real, live** | JSON via `Accept` header (verified live — no XML parsing). Model names differ from vPIC ("Civic" vs "Civic 4Dr"): fuzzy prefix match, and when nothing matches the fuel-cost bar is hidden rather than guessed. Single-entry menus arrive as an object, not a one-item array — normalized at the decode boundary. |
+| EPA fuel prices (weekly) | **Real, live** | `/ws/rest/fuelprices` national averages, matched to the vehicle's fuel type (a premium-fuel car is priced at premium), day-cached. Feed down or fuel not sold by the gallon → the cost bar falls back to an explicit $3.60 assumption, labeled as such. The mileage assumption is editable inline — the same pure function reruns client-side. |
 | Pricing dataset | **Synthetic, DEMO-tagged** | No free API exposes real transaction prices. Instead of faking realism: deterministic seeded generation (same vehicle → same market, always), parameters documented in [`pricing-gen.ts`](src/sources/pricing-gen.ts), a DEMO badge at every appearance, and ~5% of vehicles get a deliberately thin market so the honest empty state stays demonstrable. Swapping in a real source (e.g. Marketcheck) is one adapter behind the same `PriceContext` resolver — the schema already carries the `REAL` tag for it. |
 
 All upstream client behavior is locked by **contract tests against
@@ -167,6 +168,17 @@ idea at demo scale, as an extension of the honesty red lines
   replace the FACTS block as this deal's verdict math; `max_uses` caps
   per-request searches and `AI_WEB_SEARCH=0` turns it off
   ([ADR 005](docs/adr/005-ai-native.md)).
+- **One more thing** (dashboard): a reveal-on-tap fun fact about the
+  exact vehicle — generation-anchored, web-verified where possible with
+  the source named inline, and honestly declined ("no verified party
+  tricks") when nothing checks out. Generated once per model and cached
+  for a week; the 🔊 reads it in a dedicated storyteller voice.
+- **Voice replies**: Q&A answers speak automatically in a warm,
+  conversational TTS voice (`gpt-4o-mini-tts`), with one 🔊 control per
+  reply whose contract is exact — tap pauses at that spot, tap resumes
+  from it, tap after the end replays; only one reply talks at a time.
+  The brief gets a manual "listen" button. Same key, same guard, audio
+  never stored ([ADR 006](docs/adr/006-voice-input.md)).
 - **Voice input, two tiers** on both NL surfaces
   ([ADR 006](docs/adr/006-voice-input.md)): the keyless default is the
   browser's Web Speech API, tuned to survive mid-sentence pauses
@@ -199,9 +211,11 @@ npm run dev        # no API keys — all sources are free public APIs
 AI features are optional: add `ANTHROPIC_API_KEY=…` to `.env.local` to
 enable them locally. Without a key, the AI surfaces degrade to an
 honest explanation and everything else works. `STT_API_KEY=…`
-(optional, OpenAI) upgrades voice dictation to a Whisper-family model
-(`STT_MODEL` to override which); without it, dictation uses the
-browser's own speech service where available.
+(optional, OpenAI) powers voice in both directions: dictation upgrades
+to a Whisper-family model (`STT_MODEL` to override) and AI replies
+speak aloud via TTS (`TTS_MODEL` / `TTS_VOICE` to override); without
+it, dictation uses the browser's own speech service where available
+and replies stay text-only.
 
 | Command | What it does |
 | ------- | ------------ |
