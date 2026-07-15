@@ -12,6 +12,7 @@ import { PriceContextChart } from "@/components/charts/PriceContextChart";
 import { PriceHistoryTimeline } from "@/components/charts/PriceHistoryTimeline";
 import { DemoDataBadge, ProvenanceBadge } from "@/components/DataBadge/DataBadge";
 import { AiBadge, DealBrief } from "@/components/DealBrief/DealBrief";
+import { AskThread } from "@/components/DealBrief/AskThread";
 import { QuoteExplorer } from "@/components/QuoteExplorer/QuoteExplorer";
 import styles from "./page.module.css";
 
@@ -219,6 +220,14 @@ export default async function DealPage({ params, searchParams }: DealPageProps) 
           <AiBadge />
         </div>
         <DealBrief
+          make={parsed.make}
+          year={parsed.year}
+          model={parsed.model}
+          quote={priceContext.quote}
+        />
+        {/* Follow-up Q&A shares the brief's grounding: the server
+            rebuilds the FACTS block on every question. */}
+        <AskThread
           make={parsed.make}
           year={parsed.year}
           model={parsed.model}
