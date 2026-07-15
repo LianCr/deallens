@@ -1,0 +1,22 @@
+/* Caption-grade: sits flush under the chart, no box, must not compete
+   with the timeline above it. */
+.hint {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  margin: var(--space-sm) 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  line-height: 1.7;
+}
+
+.icon {
+  flex: none;
+  /* Optically align the glyph with the first line of text. */
+  margin-top: 0.3rem;
+}
+
+.emphasis {
+  font-weight: 600;
+  color: var(--color-fg);
+}

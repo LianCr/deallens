@@ -15,6 +15,7 @@ import { AiBadge, DealBrief } from "@/components/DealBrief/DealBrief";
 import { AskThread } from "@/components/DealBrief/AskThread";
 import { FunFact } from "@/components/FunFact/FunFact";
 import { QuoteExplorer } from "@/components/QuoteExplorer/QuoteExplorer";
+import { WhenToBuy } from "@/components/WhenToBuy/WhenToBuy";
 import styles from "./page.module.css";
 
 /**
@@ -191,6 +192,10 @@ export default async function DealPage({ params, searchParams }: DealPageProps) 
           history={priceContext.history}
           events={priceContext.events}
         />
+        {/* Caption-grade seasonal hint; renders nothing when the data
+            is too thin or the dip is noise — absence is the honest
+            state, and the timeline's empty state covers thin markets. */}
+        <WhenToBuy history={priceContext.history} />
       </section>
 
       {fuelEconomy && fuelCost !== null && (
