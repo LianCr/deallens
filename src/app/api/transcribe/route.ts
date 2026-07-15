@@ -91,8 +91,29 @@ export async function POST(request: Request): Promise<Response> {
       // audio problem — say so instead of blaming the recording.
       return jsonError(502, "bad-key", "The configured speech key was rejected by the speech service.");
     }
+    if (upstream.status === 429) {
+      // Out of credit / rate limited upstream — again not the shopper's
+      // fault, and the mic falls back to the browser tier.
+      return jsonError(502, "no-quota", "The speech account is out of credit — dictation falls back to your browser.");
+    }
     if (!upstream.ok) {
-      return jsonError(502, "upstream", "The speech service couldn't transcribe that — try again or type.");
+      // Surface the upstream classification (never the key, never the
+      // audio) so a quota or model-access problem is diagnosable from
+      // the response instead of reading as a bad recording.
+      const detail = await upstream
+        .json()
+        .then((body: { error?: { message?: string } }) =>
+          (body.error?.message ?? "").slice(0, 160),
+        )
+        .catch(() => "");
+      return Response.json(
+        {
+          reason: "upstream",
+          message: "The speech service couldn't transcribe that — try again or type.",
+          detail: `speech service answered ${upstream.status}${detail ? `: ${detail}` : ""}`,
+        },
+        { status: 502 },
+      );
     }
     const data = (await upstream.json()) as { text?: string };
     return Response.json(

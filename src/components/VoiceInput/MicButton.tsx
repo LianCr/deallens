@@ -12,12 +12,6 @@ import {
   type VoiceRecorderErrorKind,
 } from "@/lib/useVoiceRecorder";
 import { useSttAvailability } from "@/lib/sttAvailability";
-import {
-  cycleLangPref,
-  LANG_PREF_LABEL,
-  resolveLang,
-  useLangPref,
-} from "@/lib/langPref";
 import styles from "./MicButton.module.css";
 
 /**
@@ -74,6 +68,9 @@ const RECORDER_ERROR_COPY: Record<VoiceRecorderErrorKind, string> = {
   "transcribe-failed": "Couldn't transcribe that — try again, or keep typing.",
 };
 
+/** Dictation language. English by default; Whisper auto-detects anyway. */
+const DICTATION_LANG = "en-US";
+
 /** Per-bar level multipliers so the meter reads organically. */
 const BAR_GAIN = [0.75, 1, 0.6, 0.9];
 
@@ -83,15 +80,18 @@ export function MicButton({
   recognitionCtor,
   recorderDeps,
 }: MicButtonProps) {
-  const langPref = useLangPref();
-  const lang = resolveLang(langPref);
   const stt = useSttAvailability();
   const barsRef = useRef<HTMLSpanElement>(null);
 
-  const speech = useSpeechInput({ onInterim, onFinal, recognitionCtor, lang });
+  const speech = useSpeechInput({
+    onInterim,
+    onFinal,
+    recognitionCtor,
+    lang: DICTATION_LANG,
+  });
   const recorder = useVoiceRecorder({
     onFinal,
-    lang,
+    lang: DICTATION_LANG,
     deps: recorderDeps,
     onLevel(level) {
       const bars = barsRef.current?.children;
@@ -104,9 +104,18 @@ export function MicButton({
   });
 
   const speechSupported = speech.state.status !== "unsupported";
+  // A failed server transcription (quota, key, upstream — anything but
+  // the user's own mic permission) demotes the server tier for the rest
+  // of the session: the next tap uses the browser tier instead of
+  // failing the same way twice. Derived, not stored — the recorder's
+  // error state is the flag.
+  const serverTierBroken =
+    recorder.state.status === "error" &&
+    recorder.state.kind === "transcribe-failed" &&
+    speechSupported;
   // The server tier is usable only when the deployment enables it.
   const serverTierReady =
-    recorder.state.status !== "unsupported" && stt === "enabled";
+    recorder.state.status !== "unsupported" && stt === "enabled" && !serverTierBroken;
 
   const listening = speech.state.status === "listening";
   const recording = recorder.state.status === "recording";
@@ -146,7 +155,9 @@ export function MicButton({
         : speech.state.status === "error"
           ? SPEECH_ERROR_COPY[speech.state.kind]
           : recorder.state.status === "error"
-            ? RECORDER_ERROR_COPY[recorder.state.kind]
+            ? serverTierBroken
+              ? "Server transcription failed — tap again to dictate with your browser."
+              : RECORDER_ERROR_COPY[recorder.state.kind]
             : "";
 
   return (
@@ -187,16 +198,6 @@ export function MicButton({
           </svg>
         )}
         {listening && <span className={styles.pulse} aria-hidden="true" />}
-      </button>
-      <button
-        type="button"
-        data-testid="lang-toggle"
-        className={styles.langToggle}
-        title="Dictation language — click to switch (Auto / English / 中文)"
-        aria-label={`Dictation language: ${LANG_PREF_LABEL[langPref]}. Click to switch.`}
-        onClick={() => cycleLangPref()}
-      >
-        {LANG_PREF_LABEL[langPref]}
       </button>
       <span
         className={styles.status}

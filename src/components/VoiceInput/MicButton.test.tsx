@@ -89,16 +89,51 @@ describe("MicButton", () => {
     expect(onFinal).toHaveBeenCalledWith("family SUV under $30k");
   });
 
-  it("cycles the dictation language on the toggle", () => {
-    renderMic(fakeCtor);
-    const toggle = screen.getByTestId("lang-toggle");
-    expect(toggle).toHaveTextContent("Auto");
-    fireEvent.click(toggle);
-    expect(toggle).toHaveTextContent("EN");
-    fireEvent.click(toggle);
-    expect(toggle).toHaveTextContent("中文");
-    fireEvent.click(toggle);
-    expect(toggle).toHaveTextContent("Auto");
+  it("falls back to the browser tier after a server transcription failure", async () => {
+    primeSttAvailabilityForTests("enabled");
+    const deps: VoiceRecorderDeps = {
+      getUserMedia: async () => ({ getTracks: () => [] }),
+      createRecorder: () => {
+        const recorder = {
+          ondataavailable: null as ((event: { data: Blob }) => void) | null,
+          onstop: null as (() => void) | null,
+          start: () => {},
+          stop() {
+            this.ondataavailable?.({ data: new Blob(["x"], { type: "audio/webm" }) });
+            this.onstop?.();
+          },
+        };
+        return { recorder, mimeType: "audio/webm" };
+      },
+      createLevelMeter: () => null,
+      // Out-of-quota deployment: every upload fails.
+      transcribe: () => Promise.reject(new Error("no-quota")),
+    };
+    render(
+      <MicButton
+        onInterim={vi.fn()}
+        onFinal={vi.fn()}
+        recognitionCtor={fakeCtor}
+        recorderDeps={deps}
+      />,
+    );
+
+    const button = screen.getByTestId("mic-button");
+    fireEvent.click(button); // server tier wins the first click
+    await waitFor(() =>
+      expect(screen.getByTestId("mic-status")).toHaveTextContent("Recording"),
+    );
+    fireEvent.click(button); // stop → upload fails
+    await waitFor(() =>
+      expect(screen.getByTestId("mic-status")).toHaveTextContent(
+        /tap again to dictate with your browser/i,
+      ),
+    );
+
+    // The next tap degrades to Web Speech instead of failing again.
+    fireEvent.click(button);
+    expect(FakeRecognizer.instances).toHaveLength(1);
+    expect(screen.getByTestId("mic-status")).toHaveTextContent("Listening…");
   });
 
   describe("server tier (tier 2)", () => {
