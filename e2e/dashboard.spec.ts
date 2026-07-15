@@ -49,6 +49,31 @@ test("sweeping the distribution shows a live percentile readout", async ({ page 
   await expect(overlay.locator("div").last()).toHaveText(/\$\d[\d,]* · cheaper than \d+% of listings/);
 });
 
+test("the fuel bar names its price assumption and recomputes for your mileage", async ({
+  page,
+}) => {
+  await page.goto(DEAL_URL);
+  const fuel = page.getByTestId("fuel-cost");
+  await fuel.scrollIntoViewIfNeeded();
+  await expect(fuel).toBeVisible();
+
+  // Either this week's real national average (attributed) or — when the
+  // live fuelprices call can't be made from CI — the honest, explicit
+  // $3.60 fallback. Both are legitimate; silence about the price is not.
+  await expect(fuel).toHaveText(
+    /this week's national average \w+ price, \$\d+\.\d{2}\/gallon \(fueleconomy\.gov\)|and \$3\.60\/gallon/,
+  );
+
+  // Editing the mileage assumption recomputes the figure live — the
+  // same pure function the server ran, whichever price applied.
+  const figure = page.getByTestId("fuel-annual-cost");
+  const before = (await figure.textContent())!;
+  expect(before).toMatch(/^\$[\d,]+$/);
+  await page.getByTestId("fuel-miles-input").fill("24000");
+  await expect(figure).not.toHaveText(before);
+  await expect(figure).toHaveText(/^\$[\d,]+$/);
+});
+
 test("fuzzed share links degrade honestly, never to a 500", async ({ page }) => {
   // Out-of-range year → 404, not an unhandled GraphQL error.
   const badYear = await page.goto("/deal/honda/1900/civic?quote=20000");

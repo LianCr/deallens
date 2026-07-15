@@ -1,0 +1,52 @@
+.fuelCost {
+  margin: 0;
+  font-size: var(--text-xl);
+}
+
+.fuelFigure {
+  /* The hero number of this section: fixed-width digits so live
+     recomputes never make it wiggle. */
+  font-variant-numeric: tabular-nums;
+}
+
+.fuelDetail {
+  font-size: var(--text-sm);
+  color: var(--color-muted);
+  line-height: 1.6;
+}
+
+/* The mileage assumption, editable in place. It reads as part of the
+   sentence: no border box, just a dashed underline as the affordance,
+   and a fixed ch width so SSR, hydration, and edits never shift layout. */
+.milesInput {
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-fg);
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed var(--color-border-strong);
+  border-radius: 0;
+  padding: 0;
+  width: 6ch;
+  text-align: center;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+/* The native spinners would widen the box on hover — hide them. */
+.milesInput::-webkit-outer-spin-button,
+.milesInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.milesInput:hover {
+  border-bottom-color: var(--color-fg);
+}
+
+.milesInput:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-bottom-style: solid;
+  border-bottom-color: var(--color-accent);
+}

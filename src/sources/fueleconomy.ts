@@ -12,6 +12,9 @@
  *    match fuzzily and degrade honestly (return null → the UI hides the
  *    fuel-cost bar) when nothing matches.
  *  - Numeric fields in vehicle records are strings ("35", not 35).
+ *  - The weekly /fuelprices feed is also all strings ("4.15", not
+ *    4.15), and its `electric` entry is $/kWh — a different unit that
+ *    our gallons math must never touch (see FuelPrices below).
  */
 import { UpstreamError, fetchUpstream } from "./errors";
 
@@ -100,6 +103,67 @@ export function parseVehicleRecord(
     feModelName,
     fuelType: typeof fuelType === "string" ? fuelType : "Unknown",
   };
+}
+
+/**
+ * This week's national average pump prices, USD per gallon. The feed
+ * also carries cng/e85/lpg and an `electric` $/kWh figure; we only keep
+ * the gallon-priced fuels our annual-cost math (miles / MPG × $/gal)
+ * can honestly use.
+ */
+export interface FuelPrices {
+  regular: number;
+  midgrade: number;
+  premium: number;
+  diesel: number;
+}
+
+const GALLON_PRICE_KEYS = ["regular", "midgrade", "premium", "diesel"] as const;
+
+/** Decode the /fuelprices payload: string-valued dollars → numbers, loudly. */
+export function parseFuelPrices(payload: unknown): FuelPrices {
+  const record = (payload ?? {}) as Record<string, unknown>;
+  const prices = {} as FuelPrices;
+  for (const key of GALLON_PRICE_KEYS) {
+    const raw = record[key];
+    const value =
+      typeof raw === "string" || typeof raw === "number" ? Number(raw) : NaN;
+    if (!Number.isFinite(value) || value <= 0) {
+      throw new UpstreamError(
+        "FORMAT",
+        SOURCE,
+        `fuel price "${key}" is missing or not a usable number`,
+      );
+    }
+    prices[key] = value;
+  }
+  return prices;
+}
+
+/**
+ * Match an EPA `fuelType` label to its weekly gallon price. Anything
+ * not sold by the gallon (electricity, blends, unknown labels) gets
+ * null — no unit-mangled guesses.
+ */
+export function gallonPriceForFuelType(
+  fuelType: string,
+  prices: FuelPrices,
+): number | null {
+  const key = fuelType.trim().toLowerCase();
+  return (GALLON_PRICE_KEYS as readonly string[]).includes(key)
+    ? prices[key as keyof FuelPrices]
+    : null;
+}
+
+/** This week's national average fuel prices from fueleconomy.gov. */
+export async function fetchFuelPrices(
+  init: RequestInit = {},
+): Promise<FuelPrices> {
+  const response = await fetchUpstream(SOURCE, `${BASE}/fuelprices`, {
+    ...init,
+    headers: { ...JSON_HEADERS, ...init.headers },
+  });
+  return parseFuelPrices(await response.json());
 }
 
 /**
