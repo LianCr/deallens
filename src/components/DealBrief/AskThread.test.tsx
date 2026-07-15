@@ -3,7 +3,6 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { FakeRecognizer } from "@/lib/fakeSpeechRecognizer";
 import type { SpeechRecognitionCtor } from "@/lib/useSpeechInput";
 import { primeTtsAvailabilityForTests } from "@/lib/ttsAvailability";
-import { setVoicePref } from "@/lib/voicePref";
 import { resetSpeakerArbiterForTests, type SpeakerDeps } from "@/lib/useSpeaker";
 import { AskThread } from "./AskThread";
 
@@ -131,11 +130,9 @@ describe("AskThread", () => {
     beforeEach(() => {
       primeTtsAvailabilityForTests("enabled");
       resetSpeakerArbiterForTests();
-      // jsdom localStorage persists across tests in a file; pin the pref.
-      setVoicePref(true);
     });
 
-    it("the newest answer speaks on its own when voice replies are on", async () => {
+    it("a finished answer speaks on its own", async () => {
       vi.stubGlobal(
         "fetch",
         vi.fn().mockResolvedValue(streamResponse(["Grounded answer."])),
@@ -153,8 +150,7 @@ describe("AskThread", () => {
       );
     });
 
-    it("stays silent when voice replies are muted — manual play still available", async () => {
-      setVoicePref(false);
+    it("the bubble's speaker pauses in place and resumes on tap", async () => {
       vi.stubGlobal(
         "fetch",
         vi.fn().mockResolvedValue(streamResponse(["Grounded answer."])),
@@ -162,35 +158,19 @@ describe("AskThread", () => {
       const { deps, playable } = fakeSpeaker();
       render(<AskThread {...props} speakerDeps={deps} />);
 
-      const toggle = screen.getByTestId("voice-replies-toggle");
-      expect(toggle).toHaveAttribute("aria-pressed", "false");
-
       ask("Is this the right month to buy?");
-      await waitFor(() => expect(screen.getByTestId("ask-answer")).toBeInTheDocument());
-      expect(playable.play).not.toHaveBeenCalled();
-
-      // The bubble's speaker still plays on demand.
-      fireEvent.click(screen.getByTestId("speaker-button"));
       await waitFor(() => expect(playable.play).toHaveBeenCalledTimes(1));
-    });
 
-    it("muting mid-playback silences the current answer", async () => {
-      vi.stubGlobal(
-        "fetch",
-        vi.fn().mockResolvedValue(streamResponse(["Grounded answer."])),
-      );
-      const { deps, playable } = fakeSpeaker();
-      render(<AskThread {...props} speakerDeps={deps} />);
-
-      ask("Is this the right month to buy?");
-      await waitFor(() => expect(playable.play).toHaveBeenCalled());
-
-      fireEvent.click(screen.getByTestId("voice-replies-toggle"));
+      const speaker = screen.getByTestId("speaker-button");
+      fireEvent.click(speaker);
       expect(playable.pause).toHaveBeenCalled();
-      expect(screen.getByTestId("speaker-button")).toHaveAttribute(
-        "data-state",
-        "paused",
-      );
+      expect(speaker).toHaveAttribute("data-state", "paused");
+
+      fireEvent.click(speaker);
+      await waitFor(() => expect(speaker).toHaveAttribute("data-state", "playing"));
+      // Resume, not replay: one load, no seek.
+      expect(deps.load).toHaveBeenCalledTimes(1);
+      expect(playable.seekToStart).not.toHaveBeenCalled();
     });
   });
 

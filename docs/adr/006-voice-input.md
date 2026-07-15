@@ -113,9 +113,10 @@ forwards a finished reply to a speech-synthesis model
 (`gpt-4o-mini-tts` by default, `TTS_MODEL`/`TTS_VOICE` tunable) and
 streams the audio straight through — nothing stored, same shared rate
 guard, same honest 503 without the key, `MOCK_TTS=1` for CI. New Q&A
-answers speak automatically (persisted preference, ON by default, one
-🔊/🔇 toggle); the brief is ~1.5 minutes of audio, so it gets a manual
-"listen" button instead.
+answers speak automatically, and each answer's 🔊 is the one control —
+no separate global toggle (field feedback: one button on the reply is
+the whole interface). The brief is ~1.5 minutes of audio, so it gets a
+manual "listen" button instead.
 
 The pause/resume contract came free: the speaker button drives a plain
 `<audio>` element, and the browser's own `pause()` keeps

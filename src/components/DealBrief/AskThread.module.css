@@ -78,36 +78,6 @@
   font-weight: 600;
 }
 
-.labelRow {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-/* Global auto-speak toggle: quiet text control, no layout weight. */
-.voiceToggle {
-  flex: none;
-  padding: 0.125rem 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  font-family: inherit;
-  color: var(--color-muted);
-  background: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  cursor: pointer;
-}
-
-.voiceToggle:hover {
-  color: var(--color-fg);
-  border-color: var(--color-border-strong);
-}
-
-.voiceToggle[aria-pressed="true"] {
-  color: var(--color-accent);
-  border-color: color-mix(in srgb, var(--color-accent) 45%, transparent);
-}
 
 .inputRow {
   display: flex;

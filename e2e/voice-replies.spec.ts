@@ -59,23 +59,26 @@ test("a new answer speaks on its own; tap pauses, tap again resumes", async ({
   await expect(speaker).toHaveAttribute("data-state", "playing");
 });
 
-test("the global toggle mutes auto-speak for the next answer", async ({ page }) => {
+test("a second answer takes the floor — the first pauses, resumable in place", async ({
+  page,
+}) => {
   await page.addInitScript(FAKE_AUDIO_INIT);
   await page.goto(DEAL_URL);
 
-  const toggle = page.getByTestId("voice-replies-toggle");
-  await toggle.scrollIntoViewIfNeeded();
-  await expect(toggle).toHaveAttribute("aria-pressed", "true"); // on by default
-  await toggle.click();
-  await expect(toggle).toHaveAttribute("aria-pressed", "false");
-
   await askQuestion(page, "Is this the right month to buy?");
-  const speaker = page.getByTestId("speaker-button");
-  await expect(speaker).toBeVisible();
-  // Muted: no autoplay — but the manual button still works.
-  await expect(speaker).toHaveAttribute("data-state", "idle");
-  await speaker.click();
-  await expect(speaker).toHaveAttribute("data-state", "playing");
+  const speakers = page.getByTestId("speaker-button");
+  await expect(speakers.first()).toHaveAttribute("data-state", "playing");
+
+  await askQuestion(page, "What about the doc fee?");
+  await expect(speakers).toHaveCount(2);
+  // The new answer speaks; the older one paused where it was.
+  await expect(speakers.nth(1)).toHaveAttribute("data-state", "playing");
+  await expect(speakers.nth(0)).toHaveAttribute("data-state", "paused");
+
+  // Tapping the older one resumes it and pauses the newer one.
+  await speakers.nth(0).click();
+  await expect(speakers.nth(0)).toHaveAttribute("data-state", "playing");
+  await expect(speakers.nth(1)).toHaveAttribute("data-state", "paused");
 });
 
 test("the brief gets a listen button and never auto-plays", async ({ page }) => {

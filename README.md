@@ -168,12 +168,11 @@ idea at demo scale, as an extension of the honesty red lines
   per-request searches and `AI_WEB_SEARCH=0` turns it off
   ([ADR 005](docs/adr/005-ai-native.md)).
 - **Voice replies**: Q&A answers speak automatically in a warm,
-  conversational TTS voice (`gpt-4o-mini-tts`), with a 🔊 control whose
-  contract is exact — tap pauses at that spot, tap resumes from it, tap
-  after the end replays; only one reply talks at a time, and a 🔇
-  preference (persisted) mutes auto-speak. The brief gets a manual
-  "listen" button. Same key, same guard, audio never stored
-  ([ADR 006](docs/adr/006-voice-input.md)).
+  conversational TTS voice (`gpt-4o-mini-tts`), with one 🔊 control per
+  reply whose contract is exact — tap pauses at that spot, tap resumes
+  from it, tap after the end replays; only one reply talks at a time.
+  The brief gets a manual "listen" button. Same key, same guard, audio
+  never stored ([ADR 006](docs/adr/006-voice-input.md)).
 - **Voice input, two tiers** on both NL surfaces
   ([ADR 006](docs/adr/006-voice-input.md)): the keyless default is the
   browser's Web Speech API, tuned to survive mid-sentence pauses

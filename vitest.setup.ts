@@ -2,7 +2,6 @@ import "@testing-library/jest-dom/vitest";
 import { beforeEach } from "vitest";
 import { primeSttAvailabilityForTests } from "./src/lib/sttAvailability";
 import { primeTtsAvailabilityForTests } from "./src/lib/ttsAvailability";
-import { resetVoicePrefForTests } from "./src/lib/voicePref";
 
 // The voice availability stores are module-level singletons; pin them
 // per test so no unit test ever hits a network probe. Tests that
@@ -10,5 +9,4 @@ import { resetVoicePrefForTests } from "./src/lib/voicePref";
 beforeEach(() => {
   primeSttAvailabilityForTests("disabled");
   primeTtsAvailabilityForTests("disabled");
-  resetVoicePrefForTests();
 });
