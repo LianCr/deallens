@@ -86,6 +86,11 @@ export async function POST(request: Request): Promise<Response> {
       body: form,
       signal: AbortSignal.timeout(20_000),
     });
+    if (upstream.status === 401 || upstream.status === 403) {
+      // A configured-but-rejected key is a deployment problem, not an
+      // audio problem — say so instead of blaming the recording.
+      return jsonError(502, "bad-key", "The configured speech key was rejected by the speech service.");
+    }
     if (!upstream.ok) {
       return jsonError(502, "upstream", "The speech service couldn't transcribe that — try again or type.");
     }
