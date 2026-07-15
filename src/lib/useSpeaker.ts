@@ -68,14 +68,17 @@ export function resetSpeakerArbiterForTests(): void {
   activeHandle = null;
 }
 
+/** Delivery styles /api/speak knows how to voice. */
+export type VoiceStyle = "coach" | "storyteller";
+
 /** The real loader: /api/speak → blob → object URL → <audio>. */
-function realDeps(): SpeakerDeps {
+function realDeps(style: VoiceStyle): SpeakerDeps {
   return {
     async load(text) {
       const response = await fetch("/api/speak", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, style }),
       });
       if (!response.ok) throw new Error("speak-failed");
       const url = URL.createObjectURL(await response.blob());
@@ -112,7 +115,11 @@ export interface Speaker {
   speak: () => void;
 }
 
-export function useSpeaker(text: string, deps?: SpeakerDeps | null): Speaker {
+export function useSpeaker(
+  text: string,
+  deps?: SpeakerDeps | null,
+  style: VoiceStyle = "coach",
+): Speaker {
   const [state, setState] = useState<SpeakerState>("idle");
   const playableRef = useRef<PlayableLike | null>(null);
   // Stale-async guard: bumping the session invalidates in-flight loads.
@@ -147,7 +154,7 @@ export function useSpeaker(text: string, deps?: SpeakerDeps | null): Speaker {
   );
 
   const speak = useCallback(() => {
-    const active = deps ?? realDeps();
+    const active = deps ?? realDeps(style);
     const session = ++sessionRef.current;
     playableRef.current?.dispose();
     playableRef.current = null;
@@ -170,7 +177,7 @@ export function useSpeaker(text: string, deps?: SpeakerDeps | null): Speaker {
         if (sessionRef.current === session) setState("error");
       },
     );
-  }, [deps, text, handle, startPlayback]);
+  }, [deps, text, style, handle, startPlayback]);
 
   const toggle = useCallback(() => {
     const playable = playableRef.current;

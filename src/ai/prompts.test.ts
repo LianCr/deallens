@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { ASK_SYSTEM_PROMPT, BRIEF_SYSTEM_PROMPT } from "./prompts";
+import {
+  ASK_SYSTEM_PROMPT,
+  BRIEF_SYSTEM_PROMPT,
+  FUN_FACT_SYSTEM_PROMPT,
+} from "./prompts";
 
 /**
  * The prompts are frozen product copy: the honesty rules they encode
@@ -49,6 +53,26 @@ describe("ASK_SYSTEM_PROMPT", () => {
       expect(prompt).toContain("Web findings never replace FACTS");
       expect(prompt).toContain("never fabricate a finding");
     }
+  });
+});
+
+describe("FUN_FACT_SYSTEM_PROMPT", () => {
+  it("is frozen", () => {
+    expect(FUN_FACT_SYSTEM_PROMPT).toMatchSnapshot();
+  });
+
+  it("demands generation-accurate truth with an honest fallback", () => {
+    expect(FUN_FACT_SYSTEM_PROMPT).toContain("must apply to THIS model year");
+    expect(FUN_FACT_SYSTEM_PROMPT).toContain("Anchor it to the generation");
+    expect(FUN_FACT_SYSTEM_PROMPT).toContain("Never fabricate");
+    expect(FUN_FACT_SYSTEM_PROMPT).toContain("Sometimes boring is the feature");
+    expect(FUN_FACT_SYSTEM_PROMPT).toContain("Name the source inline");
+  });
+
+  it("stays off the page's number territory", () => {
+    expect(FUN_FACT_SYSTEM_PROMPT).toContain(
+      "Stay off pricing, reliability rankings, and safety claims",
+    );
   });
 });
 

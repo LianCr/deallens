@@ -13,6 +13,7 @@ import { PriceHistoryTimeline } from "@/components/charts/PriceHistoryTimeline";
 import { DemoDataBadge, ProvenanceBadge } from "@/components/DataBadge/DataBadge";
 import { AiBadge, DealBrief } from "@/components/DealBrief/DealBrief";
 import { AskThread } from "@/components/DealBrief/AskThread";
+import { FunFact } from "@/components/FunFact/FunFact";
 import { QuoteExplorer } from "@/components/QuoteExplorer/QuoteExplorer";
 import styles from "./page.module.css";
 
@@ -210,6 +211,15 @@ export default async function DealPage({ params, searchParams }: DealPageProps) 
           </p>
         </section>
       )}
+
+      {/* One true, delightful story about this exact vehicle —
+          reveal-on-tap, generated once per model and cached. */}
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>One more thing</h2>
+        </div>
+        <FunFact make={parsed.make} year={parsed.year} model={parsed.model} />
+      </section>
 
       {/* AI narrates, math decides: the brief may only restate the
           server-computed numbers above. It's an enhancement — the verdict

@@ -17,13 +17,31 @@ import { MAX_SPEAK_CHARS, speakableText } from "./speakable";
 export const runtime = "nodejs";
 
 const OPENAI_SPEECH_URL = "https://api.openai.com/v1/audio/speech";
-/** TTS model + voice; env-tunable, one place. */
+/** TTS model; env-tunable, one place. */
 const DEFAULT_MODEL = "gpt-4o-mini-tts";
-const DEFAULT_VOICE = "nova";
 
-/** How the coach should sound — the "real person" ask, made explicit. */
-const VOICE_INSTRUCTIONS =
-  "Warm, natural, and conversational — a knowledgeable friend talking a shopper through a car deal. Speak dollar figures naturally (say twenty-four thousand five hundred dollars). Keep an easy, unhurried pace.";
+/**
+ * Two delivery styles, two voices. The coach reads deal answers like a
+ * knowledgeable friend; the storyteller delivers fun facts like a
+ * secret worth leaning in for — the voice itself is the surprise.
+ */
+const VOICE_STYLES = {
+  coach: {
+    voice: () => process.env.TTS_VOICE ?? "nova",
+    instructions:
+      "Warm, natural, and conversational — a knowledgeable friend talking a shopper through a car deal. Speak dollar figures naturally (say twenty-four thousand five hundred dollars). Keep an easy, unhurried pace.",
+  },
+  storyteller: {
+    voice: () => process.env.TTS_VOICE_STORYTELLER ?? "fable",
+    instructions:
+      "A delighted storyteller sharing a little-known secret — playful, theatrical, a hint of wonder. Lean into the reveal, pause before the punchline, and let the fun land. Never rushed, never salesy.",
+  },
+} as const;
+
+type VoiceStyle = keyof typeof VOICE_STYLES;
+
+const isVoiceStyle = (value: unknown): value is VoiceStyle =>
+  value === "coach" || value === "storyteller";
 
 const clientIp = (request: Request): string =>
   request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
@@ -66,9 +84,11 @@ export function GET(): Response {
 
 export async function POST(request: Request): Promise<Response> {
   let text: string;
+  let style: VoiceStyle = "coach";
   try {
-    const body = (await request.json()) as { text?: unknown };
+    const body = (await request.json()) as { text?: unknown; style?: unknown };
     text = typeof body.text === "string" ? speakableText(body.text) : "";
+    if (isVoiceStyle(body.style)) style = body.style;
   } catch {
     text = "";
   }
@@ -107,10 +127,10 @@ export async function POST(request: Request): Promise<Response> {
       },
       body: JSON.stringify({
         model: process.env.TTS_MODEL ?? DEFAULT_MODEL,
-        voice: process.env.TTS_VOICE ?? DEFAULT_VOICE,
+        voice: VOICE_STYLES[style].voice(),
         input: text,
         response_format: "mp3",
-        instructions: VOICE_INSTRUCTIONS,
+        instructions: VOICE_STYLES[style].instructions,
       }),
       signal: AbortSignal.timeout(30_000),
     });

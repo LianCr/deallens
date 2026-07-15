@@ -67,6 +67,32 @@ describe("/api/speak", () => {
     expect((await response.json()).reason).toBe("no-key");
   });
 
+  it("the storyteller style picks its own voice and delivery", async () => {
+    vi.stubEnv("STT_API_KEY", "sk-test");
+    const upstream = vi
+      .fn()
+      .mockResolvedValue(new Response("mp3-bytes", { status: 200 }));
+    vi.stubGlobal("fetch", upstream);
+    try {
+      await POST(speakRequest({ text: "A secret about this car.", style: "storyteller" }));
+      const body = JSON.parse(upstream.mock.calls[0]![1]!.body as string) as {
+        voice: string;
+        instructions: string;
+      };
+      expect(body.voice).toBe("fable");
+      expect(body.instructions).toContain("storyteller");
+
+      // An unknown style quietly falls back to the coach.
+      await POST(speakRequest({ text: "hello there", style: "opera" }));
+      const coach = JSON.parse(upstream.mock.calls[1]![1]!.body as string) as {
+        voice: string;
+      };
+      expect(coach.voice).toBe("nova");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("maps an out-of-credit upstream to no-quota, not a generic failure", async () => {
     vi.stubEnv("STT_API_KEY", "sk-test");
     vi.stubGlobal(

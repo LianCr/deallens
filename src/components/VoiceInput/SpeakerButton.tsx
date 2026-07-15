@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useSpeaker, type SpeakerDeps } from "@/lib/useSpeaker";
+import { useSpeaker, type SpeakerDeps, type VoiceStyle } from "@/lib/useSpeaker";
 import { useTtsAvailability } from "@/lib/ttsAvailability";
 import styles from "./SpeakerButton.module.css";
 
@@ -21,13 +21,20 @@ export interface SpeakerButtonProps {
   text: string;
   /** Speak on mount (gated by the voice preference upstream). */
   autoPlay?: boolean;
+  /** Delivery style: the coach for deal talk, the storyteller for fun. */
+  voiceStyle?: VoiceStyle;
   /** Test seam (see useSpeaker): inject a fake loader. */
   deps?: SpeakerDeps | null;
 }
 
-export function SpeakerButton({ text, autoPlay = false, deps }: SpeakerButtonProps) {
+export function SpeakerButton({
+  text,
+  autoPlay = false,
+  voiceStyle = "coach",
+  deps,
+}: SpeakerButtonProps) {
   const tts = useTtsAvailability();
-  const { state, toggle, speak } = useSpeaker(text, deps);
+  const { state, toggle, speak } = useSpeaker(text, deps, voiceStyle);
 
   // Fire auto-speak exactly once per mounted reply.
   const autoPlayed = useRef(false);

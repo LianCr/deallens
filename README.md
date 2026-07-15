@@ -167,6 +167,11 @@ idea at demo scale, as an extension of the honesty red lines
   replace the FACTS block as this deal's verdict math; `max_uses` caps
   per-request searches and `AI_WEB_SEARCH=0` turns it off
   ([ADR 005](docs/adr/005-ai-native.md)).
+- **One more thing** (dashboard): a reveal-on-tap fun fact about the
+  exact vehicle — generation-anchored, web-verified where possible with
+  the source named inline, and honestly declined ("no verified party
+  tricks") when nothing checks out. Generated once per model and cached
+  for a week; the 🔊 reads it in a dedicated storyteller voice.
 - **Voice replies**: Q&A answers speak automatically in a warm,
   conversational TTS voice (`gpt-4o-mini-tts`), with one 🔊 control per
   reply whose contract is exact — tap pauses at that spot, tap resumes
