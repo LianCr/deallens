@@ -79,17 +79,47 @@ test("fuzzed share links degrade honestly, never to a 500", async ({ page }) => 
   const badYear = await page.goto("/deal/honda/1900/civic?quote=20000");
   expect(badYear!.status()).toBe(404);
 
-  // Absurd quote (overflows GraphQL Int) → falls back to the quote prompt.
+  // Absurd quote (overflows GraphQL Int) → seed at market median.
   const badQuote = await page.goto("/deal/honda/2022/civic?quote=99999999999");
   expect(badQuote!.status()).toBe(200);
-  await expect(page.getByLabel(/dealer quote/i)).toBeVisible();
+  await expect(page).toHaveURL(/quote=\d+/);
+  await expect(page.getByTestId("verdict-hero")).toBeVisible();
 });
 
-test("missing quote prompts for one without losing the vehicle", async ({ page }) => {
+test("missing quote seeds the market median and shows the full dashboard", async ({
+  page,
+}) => {
   await page.goto("/deal/honda/2022/civic");
+  await expect(page).toHaveURL(/quote=\d+/);
+  await expect(page).toHaveURL(/seed=median/);
   await expect(page.getByRole("heading", { name: /2022 Honda Civic/ })).toBeVisible();
-  await page.getByLabel(/dealer quote/i).fill("24500");
-  await page.getByRole("button", { name: /see where it lands/i }).click();
-  await expect(page).toHaveURL(/quote=24500/);
   await expect(page.getByTestId("verdict-hero")).toBeVisible();
+  await expect(page.getByTestId("median-seed-hint")).toBeVisible();
+  await expect(page.getByText(/market median/i).first()).toBeVisible();
+});
+
+test("Trust Trace shows scoring summary and expands to verdict thresholds", async ({
+  page,
+}) => {
+  await page.goto(DEAL_URL);
+  const summary = page.getByTestId("trust-trace-summary");
+  await expect(summary).toBeVisible();
+  await expect(summary).toHaveText(/How we scored this · n=\d+/);
+
+  await page.getByTestId("trust-trace").locator("summary").click();
+  const receipt = page.getByTestId("trust-trace-receipt");
+  await expect(receipt).toBeVisible();
+  await expect(receipt).toHaveText(/Verdict rules/);
+  await expect(receipt).toHaveText(/≤ P25/);
+  await expect(receipt).toHaveText(/Methodology|real market source/);
+});
+
+test("Trust Trace receipt stays in the DOM without JavaScript @no-js", async ({
+  page,
+}) => {
+  await page.goto(DEAL_URL);
+  await expect(page.getByTestId("trust-trace-summary")).toBeVisible();
+  // <details> content is in the SSR HTML even when closed — no JS needed.
+  await expect(page.getByTestId("trust-trace-receipt")).toHaveText(/Verdict rules/);
+  await expect(page.getByTestId("trust-trace-receipt")).toHaveText(/Sample size/);
 });

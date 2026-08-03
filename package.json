@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "check:js-budget": "node scripts/check-js-budget.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.111.0",

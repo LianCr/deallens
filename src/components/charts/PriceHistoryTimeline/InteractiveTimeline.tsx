@@ -152,8 +152,24 @@ export default function InteractiveTimeline({
                 {formatMonth(monthToDate(activeCluster.month))}
               </span>
               {pinnedMonth === activeCluster.month && (
-                <span className={styles.readoutPin} title="Pinned — click the dot again to release">
-                  📌
+                <span
+                  className={styles.readoutPin}
+                  title="Pinned — click the dot again to release"
+                  aria-label="Pinned"
+                >
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    aria-hidden="true"
+                    className={styles.pinIcon}
+                  >
+                    <path
+                      fill="currentColor"
+                      d="M6.5 1.2a1.2 1.2 0 0 0-1.7.1L3.2 3.2l-.9-.3a.6.6 0 0 0-.7.2L.5 4.8l2.7 2.7L1.8 11l3.5-1.4 2.7 2.7 1.7-1.1a.6.6 0 0 0 .2-.7l-.3-.9 1.9-1.6a1.2 1.2 0 0 0 .1-1.7L6.5 1.2z"
+                    />
+                  </svg>
+                  Pin
                 </span>
               )}
             </div>

@@ -16,8 +16,8 @@ export function Header() {
           <Link href="/" className={styles.navLink}>
             Pick a car
           </Link>
-          <Link href="/dev/charts" className={styles.navLink}>
-            Chart gallery
+          <Link href="/contact" className={styles.navLink}>
+            Contact
           </Link>
           <a
             href="https://github.com/LianCr/deallens"

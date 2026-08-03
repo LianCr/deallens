@@ -28,6 +28,14 @@ describe("QuoteExplorer", () => {
     expect(screen.getByText(/\$500 below the median/)).toBeInTheDocument();
   });
 
+  test("seeded-from-median shows a soft hint, not a gate", () => {
+    render(<QuoteExplorer {...baseProps} seededFromMedian />);
+    expect(screen.getByTestId("median-seed-hint")).toHaveTextContent(
+      /starting at the market median/i,
+    );
+    expect(screen.getByText(/market median:/i)).toBeInTheDocument();
+  });
+
   test("dragging the slider reruns the domain math live", () => {
     render(<QuoteExplorer {...baseProps} />);
     const slider = screen.getByLabelText(/drag to explore/i);
@@ -35,10 +43,20 @@ describe("QuoteExplorer", () => {
     fireEvent.change(slider, { target: { value: "20000" } });
     expect(screen.getByTestId("verdict-hero")).toHaveTextContent("Great deal");
     expect(screen.getByText(/exploring/i)).toBeInTheDocument();
+    expect(screen.getByTestId("trust-trace-summary")).toHaveTextContent(/Great/i);
 
     fireEvent.change(slider, { target: { value: "30000" } });
     expect(screen.getByTestId("verdict-hero")).toHaveTextContent("Above market");
     expect(screen.getByText(/\$5,000 above the median/)).toBeInTheDocument();
+    expect(screen.getByTestId("trust-trace-summary")).toHaveTextContent(/Above/i);
+  });
+
+  test("Trust Trace receipt stays in the DOM for no-JS readers", () => {
+    render(<QuoteExplorer {...baseProps} />);
+    expect(screen.getByTestId("trust-trace")).toBeInTheDocument();
+    expect(screen.getByTestId("trust-trace-receipt")).toHaveTextContent(
+      /Verdict rules/,
+    );
   });
 
   test("the slider is a plain GET form — the no-JS fallback contract", () => {

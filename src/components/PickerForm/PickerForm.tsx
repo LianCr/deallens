@@ -188,30 +188,33 @@ export function PickerForm({
         </button>
       </form>
 
-      <div className={styles.vinSection}>
-        <h2 className={styles.vinTitle}>Have the VIN?</h2>
-        <form action="/" method="get" className={styles.vinForm} aria-label="Decode a VIN">
-          <input
-            name="vin"
-            type="text"
-            aria-label="VIN"
-            minLength={11}
-            maxLength={17}
-            placeholder="Paste a 17-character VIN"
-            className={styles.input}
-            aria-invalid={vinError ? true : undefined}
-            required
-          />
-          <button type="submit" className={styles.submitSecondary}>
-            Decode VIN
-          </button>
-        </form>
-        {vinError && (
-          <p role="alert" className={styles.error}>
-            {vinError}
-          </p>
-        )}
-      </div>
+      <details className={styles.vinDetails} open={Boolean(vinError) || undefined}>
+        <summary className={styles.vinSummary}>Have a VIN? Decode it</summary>
+        <div className={styles.vinSection}>
+          <h2 className={styles.vinTitle}>Have the VIN?</h2>
+          <form action="/" method="get" className={styles.vinForm} aria-label="Decode a VIN">
+            <input
+              name="vin"
+              type="text"
+              aria-label="VIN"
+              minLength={11}
+              maxLength={17}
+              placeholder="Paste a 17-character VIN"
+              className={styles.input}
+              aria-invalid={vinError ? true : undefined}
+              required
+            />
+            <button type="submit" className={styles.submitSecondary}>
+              Decode VIN
+            </button>
+          </form>
+          {vinError && (
+            <p role="alert" className={styles.error}>
+              {vinError}
+            </p>
+          )}
+        </div>
+      </details>
     </>
   );
 }

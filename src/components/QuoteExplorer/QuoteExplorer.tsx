@@ -32,9 +32,11 @@ import {
   type ReactNode,
 } from "react";
 import type { Verdict } from "@/domain/types";
+import { explainDeal } from "@/domain/explainDeal";
 import { assessDeal, MIN_SAMPLE_SIZE } from "@/domain/verdict";
 import { percentileValue } from "@/domain/percentile";
 import { setDealTarget } from "@/lib/dealTarget";
+import { TrustTrace } from "@/components/TrustTrace/TrustTrace";
 import {
   formatDollars,
   quoteMarkerLayout,
@@ -89,13 +91,18 @@ function verdictDetail(
 }
 
 /** Anchored comparison: the dealer's quote never disappears while exploring. */
-function savingsLine(quote: number, initialQuote: number): string {
+function savingsLine(
+  quote: number,
+  initialQuote: number,
+  seededFromMedian: boolean,
+): string {
   const delta = quote - initialQuote;
   if (delta === 0) return "";
   const abs = Math.abs(delta).toLocaleString("en-US");
+  const anchor = seededFromMedian ? "the market median" : "the dealer's quote";
   return delta < 0
-    ? `You'd save $${abs} vs the dealer's quote.`
-    : `That's $${abs} more than the dealer asked.`;
+    ? `You'd save $${abs} vs ${anchor}.`
+    : `That's $${abs} more than ${seededFromMedian ? "the market median" : "the dealer asked"}.`;
 }
 
 export interface QuoteExplorerProps {
@@ -110,6 +117,13 @@ export interface QuoteExplorerProps {
   /** Path of this deal page, for the no-JS form fallback. */
   vehiclePath: string;
   contactHref: string;
+  /**
+   * True when the URL was auto-seeded at market median (no dealer quote
+   * yet). Soft banner only — not a gate.
+   */
+  seededFromMedian?: boolean;
+  /** Honesty footer on the Trust Trace receipt. */
+  dataSource?: "DEMO" | "REAL";
   /** Server-rendered sections whose quote marker follows the slider. */
   children?: ReactNode;
 }
@@ -121,15 +135,23 @@ export function QuoteExplorer({
   domain,
   vehiclePath,
   contactHref,
+  seededFromMedian = false,
+  dataSource = "DEMO",
   children,
 }: QuoteExplorerProps) {
   const [quote, setQuote] = useState(initialQuote);
+  const [showSeedHint, setShowSeedHint] = useState(seededFromMedian);
   const chartHostRef = useRef<HTMLDivElement>(null);
   const skippedFirstSync = useRef(false);
 
   const { verdict, percentile } = assessDeal(quote, samples);
+  // Same pure path as assessDeal — live on every drag so the receipt
+  // never drifts from the hero.
+  const explanation = explainDeal(quote, samples);
   const copy = VERDICT_COPY[verdict];
   const explorable = samples.length >= MIN_SAMPLE_SIZE;
+  const seedActive = showSeedHint && quote === initialQuote;
+
 
   // Slider range: the whole market plus padding, always containing the
   // dealer's quote so the starting position is exact.
@@ -181,6 +203,7 @@ export function QuoteExplorer({
       return;
     }
     const timer = setTimeout(() => {
+      if (quote !== initialQuote) setShowSeedHint(false);
       syncUrl(quote);
       setDealTarget(quote === initialQuote ? null : quote);
     }, 250);
@@ -228,6 +251,7 @@ export function QuoteExplorer({
   const pickOffer = (event: MouseEvent<HTMLAnchorElement>, value: number) => {
     event.preventDefault();
     setQuote(value);
+    if (value !== initialQuote) setShowSeedHint(false);
     syncUrl(value);
     setDealTarget(value === initialQuote ? null : value);
   };
@@ -245,9 +269,15 @@ export function QuoteExplorer({
         data-testid="verdict-hero"
       >
         <p className={styles.heroQuote}>
-          {exploring ? "Exploring: " : "Dealer quote: "}
+          {exploring ? "Exploring: " : seedActive ? "Market median: " : "Dealer quote: "}
           <strong>${quote.toLocaleString("en-US")}</strong>
         </p>
+        {seedActive && (
+          <p className={styles.seedHint} data-testid="median-seed-hint">
+            No dealer quote yet — starting at the market median. Drag or enter
+            your quote.
+          </p>
+        )}
         <h2 className={styles.heroVerdict}>{copy.headline}</h2>
         <p className={styles.heroDetail} aria-live="polite">
           {verdictDetail(quote, verdict, percentile, median)}
@@ -255,8 +285,10 @@ export function QuoteExplorer({
         {/* Fixed-height slot: the savings line appears and disappears
             while dragging without moving anything below it. */}
         <p className={styles.savingsLine} data-testid="savings-line" aria-live="polite">
-          {savingsLine(quote, initialQuote)}
+          {savingsLine(quote, initialQuote, showSeedHint)}
         </p>
+
+        <TrustTrace explanation={explanation} dataSource={dataSource} />
 
         {explorable && (
           <form
@@ -360,6 +392,7 @@ export function QuoteExplorer({
 function syncUrl(quote: number): void {
   const url = new URL(window.location.href);
   url.searchParams.set("quote", String(quote));
+  url.searchParams.delete("seed");
   // Preserve the router's history state — Next.js keeps data there.
   window.history.replaceState(window.history.state, "", url);
 }

@@ -5,7 +5,7 @@ import { buildHistogram } from "@/domain/histogram";
 import { UpstreamError } from "@/sources/errors";
 import { decodeVin } from "@/sources/vpic";
 import { gallonPriceForFuelType } from "@/sources/fueleconomy";
-import { generatePricingDataset } from "@/sources/pricing-gen";
+import { activePricingSource } from "@/sources/pricing-source";
 import { isKnownMake, MAKES, YEARS } from "./makes";
 import { loadFuelEconomy, loadFuelPrices, type Loaders } from "./loaders";
 
@@ -100,7 +100,7 @@ export const resolvers = {
       }
     },
 
-    priceContext: (
+    priceContext: async (
       _parent: unknown,
       args: { make: string; model: string; year: number; quote: number },
     ) => {
@@ -108,7 +108,7 @@ export const resolvers = {
       if (!Number.isInteger(args.quote) || args.quote <= 0) {
         throw invalidInput("quote must be a positive dollar amount");
       }
-      const dataset = generatePricingDataset(
+      const dataset = await activePricingSource.getDataset(
         args.make,
         args.model,
         args.year,

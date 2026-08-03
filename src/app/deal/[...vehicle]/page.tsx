@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { executeGraphQL } from "@/graphql/yoga";
 import { dealPath, parseVehicleSegments, titleCase } from "@/lib/vehicleUrl";
 import type { PriceBucket, MarketEvent, PricePoint, Verdict } from "@/domain/types";
+import { percentileValue } from "@/domain/percentile";
 import { annualFuelCost } from "@/domain/fuelCost";
+import { activePricingSource } from "@/sources/pricing-source";
 import { PriceContextChart } from "@/components/charts/PriceContextChart";
 import { PriceHistoryTimeline } from "@/components/charts/PriceHistoryTimeline";
 import { DemoDataBadge, ProvenanceBadge } from "@/components/DataBadge/DataBadge";
@@ -19,6 +21,9 @@ import styles from "./page.module.css";
  * Page 2 — Deal Dashboard. URL shape: /deal/{make}/{year}/{model}?quote=…
  * The URL is the whole state: shareable, and the verdict is computed
  * server-side so the conclusion is readable with JavaScript disabled.
+ *
+ * Missing / invalid quote → seed at market median (`?quote=…&seed=median`)
+ * so the full dashboard is the default, not a blocking form.
  */
 export const runtime = "nodejs";
 
@@ -56,6 +61,11 @@ interface DealPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
+function currentMonthKey(): string {
+  const now = new Date();
+  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
 export async function generateMetadata({ params }: Pick<DealPageProps, "params">) {
   const parsed = parseVehicleSegments((await params).vehicle);
   if (!parsed) return { title: "Deal not found" };
@@ -74,41 +84,30 @@ export default async function DealPage({ params, searchParams }: DealPageProps) 
   const query = await searchParams;
   const quoteParam = Array.isArray(query.quote) ? query.quote[0] : query.quote;
   const quote = Number(quoteParam);
-  // An absurd or malformed quote falls back to the quote prompt.
   const hasQuote = Number.isInteger(quote) && quote > 0 && quote <= QUOTE_MAX;
 
   const vehicleName = `${parsed.year} ${titleCase(parsed.make)} ${titleCase(parsed.model)}`;
   const selfPath = dealPath(parsed.make, parsed.year, parsed.model);
 
+  // No dealer quote yet (or a junk value) → land on the full dashboard
+  // seeded at the market median. QuoteExplorer is the place to adjust.
   if (!hasQuote) {
-    return (
-      <main className={styles.main}>
-        <Header vehicleName={vehicleName} />
-        <section className={styles.quotePrompt}>
-          <h2 className={styles.sectionTitle}>What did the dealer quote you?</h2>
-          <form action={selfPath} method="get" className={styles.quoteForm}>
-            <label className={styles.quoteLabel} htmlFor="deal-quote">
-              Dealer quote (USD)
-            </label>
-            <input
-              id="deal-quote"
-              name="quote"
-              type="number"
-              inputMode="numeric"
-              min={1}
-              step={1}
-              required
-              placeholder="e.g. 24500"
-              className={styles.quoteInput}
-            />
-            <button type="submit" className={styles.quoteSubmit}>
-              See where it lands
-            </button>
-          </form>
-        </section>
-      </main>
+    const dataset = await activePricingSource.getDataset(
+      parsed.make,
+      parsed.model,
+      parsed.year,
+      currentMonthKey(),
     );
+    const median = percentileValue(dataset.listings, 50);
+    const seedQuote =
+      median !== null
+        ? Math.round(median)
+        : Math.round(dataset.listings[0] ?? 25_000);
+    redirect(`${selfPath}?quote=${seedQuote}&seed=median`);
   }
+
+  const seedRaw = Array.isArray(query.seed) ? query.seed[0] : query.seed;
+  const seededFromMedian = seedRaw === "median";
 
   const [{ priceContext }, fuelEconomy] = await Promise.all([
     executeGraphQL<{ priceContext: PriceContext }>(
@@ -171,6 +170,8 @@ export default async function DealPage({ params, searchParams }: DealPageProps) 
         domain={chartDomain}
         vehiclePath={selfPath}
         contactHref={`/contact?vehicle=${encodeURIComponent(vehicleName)}`}
+        seededFromMedian={seededFromMedian}
+        dataSource={priceContext.dataSource}
       >
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
@@ -219,38 +220,40 @@ export default async function DealPage({ params, searchParams }: DealPageProps) 
         </section>
       )}
 
-      {/* One true, delightful story about this exact vehicle —
-          reveal-on-tap, generated once per model and cached. */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>One more thing</h2>
-        </div>
-        <FunFact make={parsed.make} year={parsed.year} model={parsed.model} />
-      </section>
+      {/* GenAI extras stay below the pricing story so a 90s demo can
+          stop after the charts. Open by default so E2E and deep links
+          still find the islands without an extra click. */}
+      <details className={styles.aiExtras} open>
+        <summary className={styles.aiExtrasSummary}>
+          AI extras — narrates the numbers above (optional)
+        </summary>
 
-      {/* AI narrates, math decides: the brief may only restate the
-          server-computed numbers above. It's an enhancement — the verdict
-          never depends on it (or on JavaScript). */}
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>AI deal brief</h2>
-          <AiBadge />
-        </div>
-        <DealBrief
-          make={parsed.make}
-          year={parsed.year}
-          model={parsed.model}
-          quote={priceContext.quote}
-        />
-        {/* Follow-up Q&A shares the brief's grounding: the server
-            rebuilds the FACTS block on every question. */}
-        <AskThread
-          make={parsed.make}
-          year={parsed.year}
-          model={parsed.model}
-          quote={priceContext.quote}
-        />
-      </section>
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>One more thing</h2>
+          </div>
+          <FunFact make={parsed.make} year={parsed.year} model={parsed.model} />
+        </section>
+
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>AI deal brief</h2>
+            <AiBadge />
+          </div>
+          <DealBrief
+            make={parsed.make}
+            year={parsed.year}
+            model={parsed.model}
+            quote={priceContext.quote}
+          />
+          <AskThread
+            make={parsed.make}
+            year={parsed.year}
+            model={parsed.model}
+            quote={priceContext.quote}
+          />
+        </section>
+      </details>
     </main>
   );
 }

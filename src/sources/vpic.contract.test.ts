@@ -12,6 +12,7 @@ import modelsTruck from "@/fixtures/vpic/models-honda-2022-truck.json";
 import modelsEmpty from "@/fixtures/vpic/models-unknown-make-empty.json";
 import vinWarning from "@/fixtures/vpic/vin-decode-check-digit-warning.json";
 import vinInvalid from "@/fixtures/vpic/vin-decode-invalid.json";
+import vinSuccess from "@/fixtures/vpic/vin-decode-success.json";
 
 function mockFetchByUrl(routes: Array<[match: string, payload: unknown]>) {
   vi.stubGlobal(
@@ -65,6 +66,13 @@ describe("fetchModelsForMakeYear", () => {
 });
 
 describe("decodeVin", () => {
+  test("clean VIN (ErrorCode 0) → result with no warning", async () => {
+    mockFetchByUrl([["/DecodeVinValues/", vinSuccess]]);
+    const result = await decodeVin("1HGCV1F39NA000001");
+    expect(result).toMatchObject({ make: "HONDA", model: "Accord", year: 2022 });
+    expect(result!.warning).toBeNull();
+  });
+
   test("decodable VIN with a failed check digit → result with warning", async () => {
     mockFetchByUrl([["/DecodeVinValues/", vinWarning]]);
     const result = await decodeVin("1HGCV1F34NA012345");

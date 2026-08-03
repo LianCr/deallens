@@ -5,9 +5,28 @@ dealer's quote, and see where it lands: the market distribution around
 it, how prices moved over 24 months, and the market events pinned to
 those moves.
 
-> **Live demo:** [deallens-xi.vercel.app](https://deallens-xi.vercel.app) — try a [shared deal link](https://deallens-xi.vercel.app/deal/honda/2022/civic?quote=24500) · **Chart gallery:** [/dev/charts](https://deallens-xi.vercel.app/dev/charts) · **API playground:** [/api/graphql](https://deallens-xi.vercel.app/api/graphql)
+> **Live demo:** [deallens-xi.vercel.app](https://deallens-xi.vercel.app) — try a [shared deal link](https://deallens-xi.vercel.app/deal/honda/2022/civic?quote=24500) · **API playground:** [/api/graphql](https://deallens-xi.vercel.app/api/graphql) · **Chart gallery** (dev): [/dev/charts](https://deallens-xi.vercel.app/dev/charts)
 
 ![30-second walkthrough](docs/demo.gif)
+
+## JD mapping
+
+Built as a portfolio demo for Edmunds mid-level frontend / fullstack work.
+Each row is a claim an interviewer can click through.
+
+| JD theme | Evidence in this repo |
+| -------- | --------------------- |
+| Revamping how we present pricing | Verdict hero + market distribution + 24-month event timeline — pricing as context, not a number |
+| Trust / transparent pricing | [Trust Trace](docs/adr/007-trust-trace.md) pricing receipt: sample size, P25/median/P75, percentile, and verdict thresholds from the same pure `explainDeal` as the hero — auditable UI, not LLM prose |
+| Optimizing page performance | Lighthouse CI gate (Perf ≥ 95, LCP &lt; 2.5s, CLS &lt; 0.1); Contact page LH 100s; first-load JS gated in CI (gzip shell + sync islands &lt; 220 KB; D3 deferred) |
+| Modern JS & client-side application design | App Router RSC/SSR, URL-as-state, React×D3 split (math in pure modules, cursor via refs), ADRs |
+| Unit testing, documenting, refactoring | Domain pure functions fully unit-tested; chart component READMEs; GodModeTimeline port as a documented refactor |
+| Testing strategies, cross-browser | Vitest + fixture contracts + Playwright × chromium/firefox/webkit + dedicated `chromium-no-js` project |
+| Isomorphic JavaScript (plus) | SSR verdict HTML; no-JS picker/deal/contact still readable; isomorphic D3 static skeletons |
+| GraphQL / API design (plus) | Yoga gateway with `DataSourceTag: REAL \| DEMO`, DataLoader, typed error extensions |
+| Node.js (plus) | Gateway + three upstream clients + day-TTL caches |
+| Cloud platform (plus) | Live on Vercel; [AWS migration ADR](docs/adr/004-aws-deploy.md) |
+| See projects to completion | Live URL + green CI + sibling production product ([smart-money-decoder](https://github.com/LianCr/smart-money-decoder)) |
 
 ## Why this exists
 
@@ -37,10 +56,11 @@ as an engineering problem, in three mechanisms:
 | `/deal/…` (dashboard) | **100** | 100 | 100 | 100 | 0.51 s | 0 | 0 ms |
 | `/contact` (lead form) | **100** | 100 | 100 | 100 | 0.51 s | 0 | 0 ms |
 
-First-load JavaScript, measured over the wire (gzip): picker 70 KB,
-dashboard 48 KB, contact 74 KB — all far under the 150 KB budget. The
-D3-flavored interactive chunks load only when a chart scrolls into
-view.
+First-load JavaScript, measured from the production build manifests
+(gzip of shared shell + sync route islands; D3 chart chunks stay
+deferred until in-view): home / deal / contact all under the **220 KB**
+CI gate (Next 16 Turbopack shared shell is ~168 KB alone). Interactive
+chart code loads only when a chart scrolls into view.
 
 Tests: **89 unit/contract tests** (Vitest) + **56 E2E runs** across
 chromium, firefox, webkit, and the no-JS project (Playwright). CI runs
@@ -125,12 +145,14 @@ demonstrated in both directions.
 
 ## Data sources & honesty methodology
 
+<a id="methodology"></a>
+
 | Source | Status | Notes |
 | ------ | ------ | ----- |
 | NHTSA vPIC | **Real, live** | Models merged across car/mpv/truck vehicle types (an unfiltered query mixes in motorcycles). Unknown makes return HTTP 200 + empty `Results` — handled as an answer, not an error. VIN errors are detected from the payload's `ErrorCode`, never the HTTP status. |
 | EPA fueleconomy.gov | **Real, live** | JSON via `Accept` header (verified live — no XML parsing). Model names differ from vPIC ("Civic" vs "Civic 4Dr"): fuzzy prefix match, and when nothing matches the fuel-cost bar is hidden rather than guessed. Single-entry menus arrive as an object, not a one-item array — normalized at the decode boundary. |
 | EPA fuel prices (weekly) | **Real, live** | `/ws/rest/fuelprices` national averages, matched to the vehicle's fuel type (a premium-fuel car is priced at premium), day-cached. Feed down or fuel not sold by the gallon → the cost bar falls back to an explicit $3.60 assumption, labeled as such. The mileage assumption is editable inline — the same pure function reruns client-side. |
-| Pricing dataset | **Synthetic, DEMO-tagged** | No free API exposes real transaction prices. Instead of faking realism: deterministic seeded generation (same vehicle → same market, always), parameters documented in [`pricing-gen.ts`](src/sources/pricing-gen.ts), a DEMO badge at every appearance, and ~5% of vehicles get a deliberately thin market so the honest empty state stays demonstrable. Swapping in a real source (e.g. Marketcheck) is one adapter behind the same `PriceContext` resolver — the schema already carries the `REAL` tag for it. |
+| Pricing dataset | **Synthetic, DEMO-tagged** | No free API exposes real transaction prices. Instead of faking realism: deterministic seeded generation (same vehicle → same market, always), parameters documented in [`pricing-gen.ts`](src/sources/pricing-gen.ts), a DEMO badge at every appearance (links here), and ~5% of vehicles get a deliberately thin market so the honest empty state stays demonstrable. A real source plugs in behind the [`PricingSource`](src/sources/pricing-source.ts) interface — the schema already carries the `REAL` tag for it. |
 
 All upstream client behavior is locked by **contract tests against
 real captured payloads** (`src/fixtures/`) — format drift fails loudly

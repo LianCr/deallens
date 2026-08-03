@@ -44,6 +44,12 @@ interface NlFinderProps {
   speechRecognitionCtor?: SpeechRecognitionCtor | null;
 }
 
+const EXAMPLE_QUERIES = [
+  "reliable family SUV under $30k",
+  "efficient compact sedan for commuting",
+  "truck for weekend projects around $40k",
+] as const;
+
 export function NlFinder({ speechRecognitionCtor }: NlFinderProps = {}) {
   const [query, setQuery] = useState("");
   /** True while the input shows a live, not-yet-final dictation. */
@@ -76,7 +82,10 @@ export function NlFinder({ speechRecognitionCtor }: NlFinderProps = {}) {
       setResult({ candidates: data.candidates ?? [], dropped: data.dropped ?? 0 });
       setPhase("done");
     } catch {
-      setError({ reason: "network", message: "Lost the connection. Try again, or use the picker below." });
+      setError({
+        reason: "network",
+        message: "Lost the connection. Try again, or use the picker below.",
+      });
       setPhase("error");
     }
   }
@@ -119,6 +128,23 @@ export function NlFinder({ speechRecognitionCtor }: NlFinderProps = {}) {
           </button>
         </div>
       </form>
+
+      <ul className={styles.chips} aria-label="Example searches">
+        {EXAMPLE_QUERIES.map((example) => (
+          <li key={example}>
+            <button
+              type="button"
+              className={styles.chip}
+              onClick={() => {
+                setDictating(false);
+                setQuery(example);
+              }}
+            >
+              {example}
+            </button>
+          </li>
+        ))}
+      </ul>
 
       {phase === "error" && error && (
         <p className={styles.error} role="status">

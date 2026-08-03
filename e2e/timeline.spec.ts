@@ -76,7 +76,7 @@ test("sweeping near an event dot shows it; clicking pins it", async ({ page }) =
   await page.mouse.down();
   await page.mouse.up();
   await page.mouse.move(box.x + box.width / 2, box.y - 50);
-  await expect(readout.getByText("📌")).toBeVisible();
+  await expect(readout.getByText("Pin")).toBeVisible();
 });
 
 test("range switch narrows the window", async ({ page }) => {

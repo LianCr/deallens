@@ -40,7 +40,9 @@ test("the NL finder returns catalog-verified candidate cards", async ({ page }) 
   await expect(cards).toHaveCount(3);
   await expect(cards.first()).toHaveAttribute("href", "/deal/honda/2022/cr-v");
   await expect(cards.first()).toContainText("2022 Honda CR-V");
-  await expect(page.getByText(/verified against the NHTSA catalog/)).toBeVisible();
+  await expect(
+    finder.getByText(/AI-suggested · every candidate verified against the NHTSA catalog/),
+  ).toBeVisible();
 
   // The cards are real deep links into the deal flow.
   await cards.first().click();

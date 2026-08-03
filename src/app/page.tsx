@@ -7,12 +7,11 @@ import { NlFinder } from "@/components/NlFinder/NlFinder";
 import styles from "./page.module.css";
 
 /**
- * Page 1 — vehicle picker.
+ * Page 1 — vehicle entry.
  *
- * Isomorphic by construction: the whole flow works as a plain GET form
- * (pick make → submit → server re-renders with years/models → …), and
- * a client component upgrades the same form to an instant cascade after
- * hydration. URL is the only state.
+ * Hero primary CTA is the catalog-grounded NL finder (GenAI showcase).
+ * The Make → Year → Model cascade is the isomorphic fallback: same page,
+ * no JS required. Sample deals below the fold for the 90-second path.
  */
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,9 +55,9 @@ export default async function Home({
       if (decodeVin) {
         redirect(dealPath(decodeVin.make, decodeVin.year, decodeVin.model));
       }
-      vinError = "That VIN doesn't identify a vehicle. Check for typos, or pick the car manually below.";
+      vinError =
+        "That VIN doesn't identify a vehicle. Check for typos, or pick the car manually below.";
     } catch (error) {
-      // redirect() works by throwing — let it through.
       if (error && typeof error === "object" && "digest" in error) throw error;
       vinError = "The VIN decoder is unreachable right now. Pick the car manually below.";
     }
@@ -85,85 +84,82 @@ export default async function Home({
     }
   }
 
-  // Complete selection → the dashboard owns the rest. Also canonicalizes
-  // shared picker links.
   if (hasMakeYear && selection.model && models.includes(selection.model)) {
     redirect(dealPath(selection.make!, year, selection.model, selection.quote || undefined));
   }
 
   return (
     <main className={styles.main}>
-      {/* Hero: static text only — this is the LCP element, so it ships
-          zero client JS and never shifts. */}
-      <section className={styles.hero}>
-        <h1 className={styles.title}>
-          DealLens<span className={styles.titleDot}>.</span> Is this price fair?
-        </h1>
-        <p className={styles.tagline}>
-          Pick a car, enter the dealer&apos;s quote, and see where it lands in the
-          market — not just a number, but the context around it.
+      <section className={styles.heroPlane} aria-label="DealLens">
+        <div className={styles.heroGrid} aria-hidden="true" />
+        <div className={styles.heroInner}>
+          <h1 className={styles.title}>
+            <span className={styles.brandMark} data-display>
+              Deal<span className={styles.brandAccent}>Lens</span>
+            </span>
+            <span className={styles.titleLine}>Is this price fair?</span>
+          </h1>
+          <p className={styles.tagline}>
+            Describe the car you want — or pick make, year, and model — then see
+            where a dealer quote lands in the market.
+          </p>
+
+          <div className={styles.primaryCta}>
+            <div className={styles.finderBlock}>
+              <h2 className={styles.ctaTitle}>Describe the car you want</h2>
+              <p className={styles.ctaLead}>
+                AI suggests · every model checked against the live NHTSA catalog
+              </p>
+              <NlFinder />
+            </div>
+
+            <div className={styles.secondaryPicker}>
+              <h2 className={styles.secondaryTitle}>Or pick make, year, and model</h2>
+              <PickerForm
+                makes={makes}
+                years={years}
+                models={models}
+                selection={{
+                  make: selection.make ?? "",
+                  year: selection.year ?? "",
+                  model: selection.model ?? "",
+                  quote: selection.quote ?? "",
+                }}
+                modelsError={modelsError}
+                vinError={vinError}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.belowFold}>
+        <section className={styles.samples} aria-label="Example deals">
+          <h2 className={styles.sectionTitle}>Try a shared deal</h2>
+          <p className={styles.sectionLead}>
+            Jump straight to a server-rendered verdict — the 90-second demo path.
+          </p>
+          <ul className={styles.sampleList}>
+            {SAMPLE_DEALS.map((sample) => (
+              <li key={sample.href}>
+                <Link href={sample.href} className={styles.sampleCard}>
+                  <span className={styles.sampleVerdict}>{sample.verdict}</span>
+                  <span className={styles.sampleVehicle}>{sample.vehicle}</span>
+                  <span className={styles.sampleQuote}>
+                    quoted at <span className="price-figure">{sample.quote}</span>
+                  </span>
+                  <span className={styles.sampleCta}>Open the lens →</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <p className={styles.howLine}>
+          <strong>How it works:</strong> NHTSA catalog → server-side percentile &amp;
+          verdict → shareable SSR link. Pricing is a labeled demo dataset.
         </p>
       </section>
-
-      {/* AI is an on-ramp, not a dependency: everything below it works
-          without AI (and without JavaScript). */}
-      <section className={styles.finderSection} aria-label="Describe what you need">
-        <NlFinder />
-      </section>
-
-      <section className={styles.pickerSection} aria-label="Pick the car yourself">
-        <h2 className={styles.sectionTitle}>Or pick the car yourself</h2>
-        <PickerForm
-          makes={makes}
-          years={years}
-          models={models}
-          selection={{
-            make: selection.make ?? "",
-            year: selection.year ?? "",
-            model: selection.model ?? "",
-            quote: selection.quote ?? "",
-          }}
-          modelsError={modelsError}
-          vinError={vinError}
-        />
-      </section>
-
-      <section className={styles.samples} aria-label="Example deals">
-        <h2 className={styles.sectionTitle}>Or try a shared deal</h2>
-        <ul className={styles.sampleList}>
-          {SAMPLE_DEALS.map((sample) => (
-            <li key={sample.href}>
-              <Link href={sample.href} className={styles.sampleCard}>
-                <span className={styles.sampleVehicle}>{sample.vehicle}</span>
-                <span className={styles.sampleQuote}>quoted at {sample.quote}</span>
-                <span className={styles.sampleCta}>See the verdict →</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section className={styles.how} aria-label="How it works">
-        <h2 className={styles.sectionTitle}>How it works</h2>
-        <ol className={styles.howSteps}>
-          <li className={styles.howStep}>
-            <strong>Pick a real car.</strong> Make, year, and model come live from
-            the NHTSA catalog — or paste a VIN.
-          </li>
-          <li className={styles.howStep}>
-            <strong>Enter the dealer&apos;s quote.</strong> The verdict is computed
-            server-side: percentile, median delta, 24 months of price history.
-          </li>
-          <li className={styles.howStep}>
-            <strong>Negotiate with context.</strong> A shareable link, honest data
-            labels, and an AI brief grounded in the same numbers.
-          </li>
-        </ol>
-      </section>
-
-      <p className={styles.dataNote}>
-        Vehicle catalog: NHTSA vPIC (real, live). No account, no API keys.
-      </p>
     </main>
   );
 }
@@ -172,16 +168,19 @@ const SAMPLE_DEALS = [
   {
     vehicle: "2022 Honda Civic",
     quote: "$24,500",
+    verdict: "Great deal",
     href: dealPath("Honda", 2022, "Civic", 24500),
   },
   {
     vehicle: "2022 Toyota RAV4",
     quote: "$31,200",
+    verdict: "Fair",
     href: dealPath("Toyota", 2022, "RAV4", 31200),
   },
   {
     vehicle: "2021 Ford F-150",
     quote: "$38,900",
+    verdict: "Above market",
     href: dealPath("Ford", 2021, "F-150", 38900),
   },
 ];

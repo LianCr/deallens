@@ -25,6 +25,14 @@ export function Footer() {
           </a>
         </p>
         <p className={styles.footerLine}>
+          <a href="/dev/charts" className={styles.footerLink}>
+            Chart gallery
+          </a>
+          {" · "}
+          <a href="/api/graphql" className={styles.footerLink} rel="noopener">
+            GraphQL playground
+          </a>
+          {" · "}
           Designed &amp; built by{" "}
           <a
             href="https://github.com/LianCr"
