@@ -13,11 +13,11 @@ export function Header() {
           Deal<span className={styles.wordmarkAccent}>Lens</span>
         </Link>
         <nav className={styles.nav} aria-label="Primary">
+          <Link href="/research" className={styles.navLink}>
+            Analyze listing
+          </Link>
           <Link href="/" className={styles.navLink}>
             Pick a car
-          </Link>
-          <Link href="/contact" className={styles.navLink}>
-            Contact
           </Link>
           <a
             href="https://github.com/LianCr/deallens"

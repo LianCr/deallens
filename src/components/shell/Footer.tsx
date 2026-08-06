@@ -11,17 +11,26 @@ export function Footer() {
       <div className={styles.footerInner}>
         <p className={styles.footerLine}>
           Vehicle catalog: NHTSA vPIC (real) · Fuel economy: fueleconomy.gov (real) ·
-          Pricing: deterministic demo dataset, labeled wherever it appears.
+          Listing research: SerpAPI when configured, otherwise labeled demo fallback ·
+          Deal-dashboard pricing: deterministic demo dataset where marked.
         </p>
         <p className={styles.footerLine}>
-          AI narrates, math decides — the model can only restate numbers the pricing
-          engine computed.{" "}
+          AI narrates, math decides — recommendations only restate evidence the research
+          pipeline collected.{" "}
           <a
             href="https://github.com/LianCr/deallens#readme"
             className={styles.footerLink}
             rel="noopener"
           >
             Methodology
+          </a>
+          {" · "}
+          <a href="/research" className={styles.footerLink}>
+            Listing analyzer
+          </a>
+          {" · "}
+          <a href="/contact" className={styles.footerLink}>
+            Contact (demo)
           </a>
         </p>
         <p className={styles.footerLine}>

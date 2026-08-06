@@ -7,11 +7,8 @@ import { NlFinder } from "@/components/NlFinder/NlFinder";
 import styles from "./page.module.css";
 
 /**
- * Page 1 — vehicle entry.
- *
- * Hero primary CTA is the catalog-grounded NL finder (GenAI showcase).
- * The Make → Year → Model cascade is the isomorphic fallback: same page,
- * no JS required. Sample deals below the fold for the 90-second path.
+ * Landing — evidence-backed research first; classic picker remains as
+ * the isomorphic shareable-deal path.
  */
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -97,18 +94,28 @@ export default async function Home({
             <span className={styles.brandMark} data-display>
               Deal<span className={styles.brandAccent}>Lens</span>
             </span>
-            <span className={styles.titleLine}>Is this price fair?</span>
+            <span className={styles.titleLine}>Is this actually a good deal?</span>
           </h1>
           <p className={styles.tagline}>
-            Describe the car you want — or pick make, year, and model — then see
-            where a dealer quote lands in the market.
+            Evidence-backed price intelligence for high-consideration purchases — starting with
+            used cars. Compare real offers, see the math, then get a grounded recommendation.
           </p>
 
           <div className={styles.primaryCta}>
             <div className={styles.finderBlock}>
-              <h2 className={styles.ctaTitle}>Describe the car you want</h2>
+              <h2 className={styles.ctaTitle}>Analyze a listing</h2>
               <p className={styles.ctaLead}>
-                AI suggests · every model checked against the live NHTSA catalog
+                Paste a URL or enter make, model, year, mileage, and price — get citable comparables
+              </p>
+              <Link href="/research" className={styles.researchCta}>
+                Open listing analyzer →
+              </Link>
+            </div>
+
+            <div className={styles.secondaryPicker}>
+              <h2 className={styles.secondaryTitle}>Or describe the car you want</h2>
+              <p className={styles.ctaLead}>
+                AI suggests models checked against the live NHTSA catalog
               </p>
               <NlFinder />
             </div>
@@ -135,9 +142,9 @@ export default async function Home({
 
       <section className={styles.belowFold}>
         <section className={styles.samples} aria-label="Example deals">
-          <h2 className={styles.sectionTitle}>Try a shared deal</h2>
+          <h2 className={styles.sectionTitle}>Try a shareable deal dashboard</h2>
           <p className={styles.sectionLead}>
-            Jump straight to a server-rendered verdict — the 90-second demo path.
+            Server-rendered verdict with distribution + timeline — works with JavaScript disabled.
           </p>
           <ul className={styles.sampleList}>
             {SAMPLE_DEALS.map((sample) => (
@@ -156,8 +163,9 @@ export default async function Home({
         </section>
 
         <p className={styles.howLine}>
-          <strong>How it works:</strong> NHTSA catalog → server-side percentile &amp;
-          verdict → shareable SSR link. Pricing is a labeled demo dataset.
+          <strong>How it works:</strong> controlled listing search (or labeled demo fallback) →
+          normalize &amp; comparables → percentile &amp; Trust Trace → AI narrates evidence only.
+          Vehicle catalog: NHTSA (real).
         </p>
       </section>
     </main>
@@ -174,7 +182,7 @@ const SAMPLE_DEALS = [
   {
     vehicle: "2022 Toyota RAV4",
     quote: "$31,200",
-    verdict: "Fair",
+    verdict: "Fair price",
     href: dealPath("Toyota", 2022, "RAV4", 31200),
   },
   {

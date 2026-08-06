@@ -12,7 +12,6 @@ import { DemoDataBadge, ProvenanceBadge } from "@/components/DataBadge/DataBadge
 import { AiBadge, DealBrief } from "@/components/DealBrief/DealBrief";
 import { AskThread } from "@/components/DealBrief/AskThread";
 import { FuelCost } from "@/components/FuelCost/FuelCost";
-import { FunFact } from "@/components/FunFact/FunFact";
 import { QuoteExplorer } from "@/components/QuoteExplorer/QuoteExplorer";
 import { WhenToBuy } from "@/components/WhenToBuy/WhenToBuy";
 import styles from "./page.module.css";
@@ -220,20 +219,11 @@ export default async function DealPage({ params, searchParams }: DealPageProps) 
         </section>
       )}
 
-      {/* GenAI extras stay below the pricing story so a 90s demo can
-          stop after the charts. Open by default so E2E and deep links
-          still find the islands without an extra click. */}
+      {/* Optional AI narration — FunFact demoted off this page; brief stays available. */}
       <details className={styles.aiExtras} open>
         <summary className={styles.aiExtrasSummary}>
-          AI extras — narrates the numbers above (optional)
+          Optional AI extras — narrates the numbers above
         </summary>
-
-        <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>One more thing</h2>
-          </div>
-          <FunFact make={parsed.make} year={parsed.year} model={parsed.model} />
-        </section>
 
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
@@ -264,6 +254,8 @@ function Header({ vehicleName }: { vehicleName: string }) {
       <div className={styles.topRow}>
         <p className={styles.breadcrumb}>
           <Link href="/">← Pick a different car</Link>
+          {" · "}
+          <Link href="/research">Analyze a listing</Link>
         </p>
         <ProvenanceBadge />
       </div>

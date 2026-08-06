@@ -27,24 +27,24 @@ const siteUrl = "https://deallens-xi.vercel.app";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "DealLens — Is this price fair?",
+    default: "DealLens — Is this actually a good deal?",
     template: "%s · DealLens",
   },
   description:
-    "Pricing as context, not a number: see where a dealer quote lands in the market distribution, how prices moved over 24 months, and why.",
+    "Evidence-backed price intelligence for high-consideration purchases, starting with used cars. Compare citable offers, see the math, get a grounded recommendation.",
   openGraph: {
-    title: "DealLens — Is this price fair?",
+    title: "DealLens — Is this actually a good deal?",
     description:
-      "Pricing as context, not a number: market distribution, 24-month history, honest data labels.",
+      "Research the market, compare real offers, and explain whether a purchase is a good deal — starting with used cars.",
     url: siteUrl,
     siteName: "DealLens",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "DealLens — Is this price fair?",
+    title: "DealLens — Is this actually a good deal?",
     description:
-      "Pricing as context, not a number: market distribution, 24-month history, honest data labels.",
+      "Evidence-backed price intelligence for used cars: citable comparables, Trust Trace, grounded AI.",
   },
 };
 

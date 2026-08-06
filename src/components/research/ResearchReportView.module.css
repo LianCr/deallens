@@ -1,0 +1,121 @@
+.report {
+  display: grid;
+  gap: var(--space-xl);
+  padding: var(--space-xl) 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.hero {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-ink-muted);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+}
+
+.lede {
+  margin: 0;
+  max-width: 42rem;
+  line-height: 1.5;
+}
+
+.verdict {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+}
+
+.verdict[data-verdict="GREAT_DEAL"] {
+  color: var(--color-positive, #0f766e);
+}
+
+.verdict[data-verdict="FAIR"] {
+  color: var(--color-ink);
+}
+
+.verdict[data-verdict="ABOVE_MARKET"] {
+  color: var(--color-danger, #b91c1c);
+}
+
+.verdict[data-verdict="INSUFFICIENT_DATA"] {
+  color: var(--color-ink-muted);
+}
+
+.badge {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+
+.section {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+}
+
+.table th {
+  color: var(--color-ink-muted);
+  font-weight: 600;
+}
+
+.exclusions,
+.trace {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: var(--space-xs);
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+}
+
+.ai {
+  display: grid;
+  gap: var(--space-sm);
+  max-width: 40rem;
+}
+
+.aiRec {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  margin: 0;
+}
+
+.meta {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
