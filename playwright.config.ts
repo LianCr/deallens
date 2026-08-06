@@ -76,6 +76,7 @@ export default defineConfig({
       MOCK_AI: "1",
       MOCK_STT: "1",
       MOCK_TTS: "1",
+      MOCK_LISTING_SEARCH: "1",
       // Roomy for one project's traffic (each project has its own IP
       // bucket via extraHTTPHeaders above); the rate-limit spec trips
       // this exact number with its own spoofed probe IP.
