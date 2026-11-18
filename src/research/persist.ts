@@ -16,6 +16,8 @@ type MongoClientType = import("mongodb").MongoClient;
 
 let clientPromise: Promise<MongoClientType> | null = null;
 
+export const MONGO_TIMEOUT_MS = 3_000;
+
 export function mongoConfigured(): boolean {
   return Boolean(process.env.MONGODB_URI?.trim());
 }
@@ -26,10 +28,18 @@ async function getDb() {
   if (!clientPromise) {
     clientPromise = (async () => {
       const { MongoClient } = await import("mongodb");
-      const client = new MongoClient(uri);
+      // Fail fast: the driver's default server selection waits 30 s,
+      // which would hold every /api/research response hostage to an
+      // unreachable optional database.
+      const client = new MongoClient(uri, { serverSelectionTimeoutMS: MONGO_TIMEOUT_MS });
       await client.connect();
       return client;
     })();
+    // Don't cache a failed connection for the life of the instance —
+    // the next request gets a fresh attempt.
+    clientPromise.catch(() => {
+      clientPromise = null;
+    });
   }
   const client = await clientPromise;
   const dbName = process.env.MONGODB_DB?.trim() || "deallens";

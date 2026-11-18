@@ -15,3 +15,16 @@ test("core content is server-rendered @no-js", async ({ page }) => {
     page.getByRole("heading", { level: 1, name: /deallens/i }),
   ).toBeVisible();
 });
+
+test("health endpoint reports the CI wiring (mocks on, no secrets)", async ({ request }) => {
+  const res = await request.get("/api/health");
+  expect(res.status()).toBe(200);
+  const body = await res.json();
+  expect(body.status).toBe("ok");
+  // playwright.config.ts webServer runs every paid integration in mock mode.
+  expect(body.integrations).toMatchObject({
+    anthropic: "mock",
+    listingSearch: "mock",
+    openaiVoice: { transcribe: "mock", speak: "mock" },
+  });
+});

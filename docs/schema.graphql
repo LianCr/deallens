@@ -1,0 +1,115 @@
+# Generated from src/graphql/schema.ts — do not edit by hand.
+# Refresh: npx vitest run src/graphql -u
+
+type Query {
+  """
+  Curated list of common makes (a whitelist — vPIC's full make table contains thousands of junk registrations).
+  """
+  makes: [String!]!
+
+  """Model years the picker offers, newest first."""
+  years: [Int!]!
+
+  """
+  Consumer models (cars, MPVs, trucks — no motorcycles) for a make + year. Empty list means vPIC has no models there; that's an answer, not an error.
+  """
+  models(make: String!, year: Int!): [String!]!
+
+  """Decode a VIN to a vehicle. Null when the VIN doesn't identify one."""
+  decodeVin(vin: String!): DecodedVehicle
+
+  """Where a dealer quote lands in the market for a vehicle."""
+  priceContext(make: String!, model: String!, year: Int!, quote: Int!): PriceContext!
+
+  """
+  Real EPA fuel economy, or null when fueleconomy.gov has no confident match — we don't force pairings.
+  """
+  fuelEconomy(make: String!, model: String!, year: Int!): FuelEconomy
+}
+
+type DecodedVehicle {
+  make: String!
+  model: String!
+  year: Int!
+
+  """Non-fatal decoder complaints, e.g. a failed check digit."""
+  warning: String
+}
+
+enum Verdict {
+  GREAT_DEAL
+  FAIR
+  ABOVE_MARKET
+  INSUFFICIENT_DATA
+}
+
+"""
+Data honesty, encoded: REAL comes from a public API, DEMO from the labeled synthetic dataset.
+"""
+enum DataSourceTag {
+  REAL
+  DEMO
+}
+
+type PriceContext {
+  quote: Int!
+  verdict: Verdict!
+
+  """Null when the sample is too small to be honest about."""
+  percentile: Float
+
+  """Market quartiles; null under the same insufficient-data rule."""
+  p25: Float
+  median: Float
+  p75: Float
+  distribution: [PriceBucket!]!
+  history: [PricePoint!]!
+  events: [MarketEvent!]!
+
+  """
+  Raw market sample prices — small enough to ship, and what lets a client rerun the exact verdict math the server ran.
+  """
+  samples: [Int!]!
+  dataSource: DataSourceTag!
+}
+
+type PriceBucket {
+  lo: Float!
+  hi: Float!
+  count: Int!
+}
+
+type PricePoint {
+  """ISO YYYY-MM month key."""
+  month: String!
+  price: Int!
+}
+
+enum MarketEventKind {
+  MODEL_YEAR
+  SEASONAL
+  INCENTIVE
+}
+
+type MarketEvent {
+  month: String!
+  title: String!
+  kind: MarketEventKind!
+}
+
+type FuelEconomy {
+  combinedMpg: Int!
+
+  """The fueleconomy.gov model variant the MPG belongs to."""
+  feModelName: String!
+  fuelType: String!
+
+  """
+  This week's national average price for this vehicle's fuel, USD per gallon (fueleconomy.gov weekly series). Null when the fuel isn't sold by the gallon (e.g. electricity) or the price feed is unavailable — the MPG answer stands either way.
+  """
+  dollarsPerGallon: Float
+
+  """Attribution for dollarsPerGallon; null whenever the price is."""
+  priceSource: String
+  dataSource: DataSourceTag!
+}
