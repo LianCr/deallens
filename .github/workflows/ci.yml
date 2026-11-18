@@ -9,6 +9,7 @@ jobs:
   quality:
     name: Lint, typecheck, unit tests, build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -20,7 +21,7 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
-      - name: First-load JS budget (<150 KB gzip)
+      - name: First-load JS budget (≤220 KB gzip per route)
         run: npm run check:js-budget
       - name: Upload build for downstream jobs
         uses: actions/upload-artifact@v4
@@ -33,6 +34,9 @@ jobs:
   e2e:
     name: E2E (${{ matrix.browser }})
     runs-on: ubuntu-latest
+    # A hung browser must fail fast, not hold a runner for the 6 h default
+    # (seen 2026-11-18: a WebKit run stuck > 30 min on this PR).
+    timeout-minutes: 20
     needs: quality
     strategy:
       fail-fast: false
@@ -58,6 +62,7 @@ jobs:
   lighthouse:
     name: Lighthouse budget gate
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: quality
     steps:
       - uses: actions/checkout@v4
