@@ -44,14 +44,18 @@
   }
 }
 
+/*
+ * Opacity-only on purpose: .heroInner wraps the picker forms, and a
+ * translate here moved the "Continue" button under the cursor while
+ * the page settled (it also made Playwright's no-JS click wait forever
+ * for the button to become stable). A fade never shifts layout.
+ */
 @keyframes heroIn {
   from {
     opacity: 0;
-    transform: translateY(12px);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 

@@ -69,7 +69,7 @@ See [ADR 008](docs/adr/008-listing-collector.md) for the collector decision.
 - **Isomorphic conclusions** — SSR verdict HTML; Playwright `chromium-no-js`.
 - **Trust Trace** — auditable receipt from the same pure `explainDeal` as the hero.
 - **AI grounding** — FACTS / EvidenceBundle only; hallucinated listing IDs are stripped.
-- **CI gates** — Vitest, Playwright ×3 browsers + no-JS, Lighthouse, JS budget (~220 KB).
+- **CI gates** — Vitest, Playwright ×3 browsers + no-JS, Lighthouse, first-load JS budget (≤220 KB gzip per route).
 - **Stack** — Next.js 16 App Router, React 19, GraphQL Yoga, D3, TypeScript strict.
 
 ## Portfolio / hiring themes
