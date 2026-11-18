@@ -9,6 +9,14 @@
   --color-neutral: #8b939e;
   /* Brand / interactive accent (links, focus) — steel-teal, not indigo. */
   --color-accent: #0d7a6f;
+  /* Text that sits ON an accent fill, and small accent/lens text on a
+     tinted chip. Separate tokens because the light-mode accent and lens
+     colors fail WCAG AA (4.5:1) as 11px text; checked by e2e/a11y.spec.ts. */
+  --color-on-accent: #ffffff;
+  --color-accent-text: #0a655c;
+  --color-lens-text: #7a4a0e;
+  /* Primary (inverted) button: text color on a --color-fg fill. */
+  --color-on-fg: var(--color-bg);
   /* Lens amber: sweep cursor / pin emphasis only. */
   --color-lens: #c47a1a;
   /* Single-series data color (distribution + price line). */
@@ -60,6 +68,9 @@
     --color-bad: #f87171;
     --color-neutral: #8b939e;
     --color-accent: #2dd4bf;
+    --color-on-accent: #042f2e;
+    --color-accent-text: #2dd4bf;
+    --color-lens-text: #e0a04a;
     --color-lens: #e0a04a;
     --color-series: #5eead4;
     --color-event-model-year: #f472b6;

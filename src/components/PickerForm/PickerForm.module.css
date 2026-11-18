@@ -57,7 +57,7 @@
 }
 
 .submit {
-  color: #f3f1ec;
+  color: var(--color-on-fg);
   background: var(--color-fg);
   border: 1px solid var(--color-fg);
 }

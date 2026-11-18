@@ -54,7 +54,10 @@ jobs:
           name: next-build
           path: .next/
       - run: npx playwright install --with-deps ${{ matrix.browser }}
-      - run: npx playwright test --project=${{ matrix.browser }}
+      - run: npx playwright test --project=${{ matrix.browser }} --grep-invert @a11y
+      - name: Accessibility gate (axe-core, WCAG 2.1 AA, light + dark + mobile)
+        if: matrix.browser == 'chromium'
+        run: npx playwright test --project=chromium --grep @a11y
       - name: E2E with JavaScript disabled (isomorphic guarantee)
         if: matrix.browser == 'chromium'
         run: npx playwright test --project=chromium-no-js
