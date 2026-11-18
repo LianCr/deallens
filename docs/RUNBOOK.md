@@ -51,6 +51,25 @@ built to handle, with the file that handles them.
   `force` in the test; that hides a real UX problem (a moving target
   under the user's cursor).
 
+## CI: an E2E job runs for 20+ minutes with no output **(incident, 2026-11-18)**
+
+- **Symptom:** one browser job (seen on WebKit) stays in
+  `npx playwright test` long after the others finish.
+- **Behavior now:** jobs have `timeout-minutes` (quality 15, E2E 20,
+  Lighthouse 15), so a hang fails instead of holding a runner for
+  GitHub's 6-hour default.
+- **Fix:** re-run the job; if it hangs twice, download the trace
+  artifact (`trace: on-first-retry`) and look for a test waiting on a
+  network response that never comes.
+
+## CI: known flaky test
+
+- `e2e/ask.spec.ts` › "a second question replays the first turn to the
+  server" on **WebKit** — the "Ask" button was still `disabled` when
+  clicked; passed on retry (CI `retries: 2`, reported as `1 flaky`,
+  2026-11-18). Not yet fixed — likely the click races the end of the
+  first streamed answer.
+
 ## `/research` returns `502 research_failed` with `[serpapi] …`
 
 - **Symptom:** listing analyzer shows an error; log line
