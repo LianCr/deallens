@@ -1,7 +1,8 @@
 # DealLens — 3-minute demo script
 
-Voice-over for a screen recording. About 430 spoken words ≈ 3 minutes
-at a relaxed pace. `[screen]` lines are what to click; only the quoted
+Voice-over for a screen recording. 370 words in the quoted lines
+(both section-2 variants counted; you speak one) ≈ 2:45–3:00 at about
+130 words per minute, leaving room for pauses while pages load. `[screen]` lines are what to click; only the quoted
 text is spoken. Record against the live site
 (<https://deallens-xi.vercel.app>) in a clean browser profile at 1280 px
 wide.
