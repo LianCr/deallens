@@ -17,6 +17,27 @@ export class UpstreamError extends Error {
   }
 }
 
+/** Query parameters whose values must never appear in an error message. */
+const SECRET_PARAMS = /^(api_?key|key|token|access_token|secret|password)$/i;
+
+/**
+ * Strip credential values from a URL before it goes into an error
+ * message. Error messages travel: into API responses, logs and Sentry-
+ * style tools. SerpAPI takes its key as `?api_key=`, so without this a
+ * 401/429 from SerpAPI echoed the key back to the browser.
+ */
+export function redactUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    for (const name of [...parsed.searchParams.keys()]) {
+      if (SECRET_PARAMS.test(name)) parsed.searchParams.set(name, "REDACTED");
+    }
+    return parsed.toString();
+  } catch {
+    return "[unparseable url]";
+  }
+}
+
 /** Default per-request timeout for upstream government APIs. */
 export const UPSTREAM_TIMEOUT_MS = 8_000;
 
@@ -38,7 +59,7 @@ export async function fetchUpstream(
     });
   } catch (cause) {
     if (cause instanceof DOMException && cause.name === "TimeoutError") {
-      throw new UpstreamError("TIMEOUT", source, `timed out after ${timeoutMs}ms: ${url}`);
+      throw new UpstreamError("TIMEOUT", source, `timed out after ${timeoutMs}ms: ${redactUrl(url)}`);
     }
     if (cause instanceof DOMException && cause.name === "AbortError") {
       throw cause; // caller-initiated aborts (e.g. stale cascade requests) pass through
@@ -46,7 +67,7 @@ export async function fetchUpstream(
     throw new UpstreamError("HTTP", source, `network failure: ${String(cause)}`);
   }
   if (!response.ok) {
-    throw new UpstreamError("HTTP", source, `HTTP ${response.status} from ${url}`);
+    throw new UpstreamError("HTTP", source, `HTTP ${response.status} from ${redactUrl(url)}`);
   }
   return response;
 }
