@@ -6,7 +6,7 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   font-family: var(--font-mono);
-  color: var(--color-lens);
+  color: var(--color-lens-text);
   background: color-mix(in srgb, var(--color-lens) 10%, transparent);
   border: 1px solid color-mix(in srgb, var(--color-lens) 40%, transparent);
   border-radius: var(--radius-sm);

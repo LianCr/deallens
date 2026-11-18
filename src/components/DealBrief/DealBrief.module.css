@@ -12,7 +12,7 @@
   text-transform: uppercase;
   /* Accent, not the DEMO-badge red: "AI-generated" is a provenance
      label, not a warning. */
-  color: var(--color-accent);
+  color: var(--color-accent-text);
   border: 1px solid color-mix(in srgb, var(--color-accent) 45%, transparent);
   border-radius: 999px;
   white-space: nowrap;

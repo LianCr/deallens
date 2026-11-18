@@ -58,7 +58,7 @@
 
 .primaryBtn {
   background: var(--color-accent);
-  color: #042f2e;
+  color: var(--color-on-accent);
   justify-self: start;
 }
 
