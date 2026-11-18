@@ -58,6 +58,10 @@ built to handle, with the file that handles them.
 - **Behavior now:** jobs have `timeout-minutes` (quality 15, E2E 20,
   Lighthouse 15), so a hang fails instead of holding a runner for
   GitHub's 6-hour default.
+- **Not the same thing:** `npx playwright install --with-deps` can take
+  ~9 minutes when the runner's apt mirrors are slow (seen 2026-11-18,
+  tests themselves took 23 s). Check which step is slow before
+  re-running.
 - **Fix:** re-run the job; if it hangs twice, download the trace
   artifact (`trace: on-first-retry`) and look for a test waiting on a
   network response that never comes.
